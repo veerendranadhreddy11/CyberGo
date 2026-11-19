@@ -4,6 +4,8 @@
 
 CyberNex is a free cybersecurity learning app for Windows and macOS. It packages the curriculum, exercises, illustrations, quizzes, and progress tracking for offline study.
 
+This branch contains the curriculum review. Run the development build and select **Review the new curriculum** from Home to open the eight offline lessons. The downloads below are for the existing v2.1.0 release. [Curriculum specification and review status](docs/Curriculum_Rebuild.md)
+
 ![CyberNex home with both learning modes](docs/screenshots/home.webp)
 
 ## Two ways to learn

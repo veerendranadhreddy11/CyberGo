@@ -129,3 +129,8 @@ select{appearance:none;padding-right:32px;background-image:linear-gradient(45deg
 .celebration{border-color:#978ded;background:linear-gradient(112deg,#212146,#1a2d3c)}.celebration h2{font-size:1.5rem}
 .route-actions{display:flex;align-items:center;gap:.45rem;flex-shrink:0}.route-actions .button{padding:.35rem .6rem}
 @media(max-width:660px){.topbar .breadcrumbs{display:none}.study-flow{grid-template-columns:1fr}}
+
+.review-flow { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
+.review-flow li { background: #0f1626; border: 1px solid #3a4560; border-radius: 7px; padding: 8px 11px; }
+.review-flow li:not(:last-child)::after { content: " →"; color: var(--muted); }
+.review-notes { display: block; width: 100%; min-height: 110px; margin-block: 8px 16px; }

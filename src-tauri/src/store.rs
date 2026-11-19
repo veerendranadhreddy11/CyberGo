@@ -92,8 +92,16 @@ struct QuizAttempt {
 fn quiz_catalog() -> &'static BTreeMap<String, Vec<(usize, usize)>> {
     static QUIZZES: OnceLock<BTreeMap<String, Vec<(usize, usize)>>> = OnceLock::new();
     QUIZZES.get_or_init(|| {
-        serde_json::from_str(include_str!("../../curriculum/course-answers.json"))
-            .expect("bundled quiz answers")
+        [
+            include_str!("../../curriculum/course-answers.json"),
+            include_str!("../../curriculum/rebuild/answers.json"),
+        ]
+        .into_iter()
+        .flat_map(|json| {
+            serde_json::from_str::<BTreeMap<String, Vec<(usize, usize)>>>(json)
+                .expect("bundled quiz answers")
+        })
+        .collect()
     })
 }
 
@@ -853,6 +861,55 @@ mod course_tests {
             },
             "badges": {"module":"2026-11-19T10:30:00Z"}
         })).unwrap()
+    }
+
+    #[test]
+    fn review_progress_and_evidence_restore_alongside_existing_course_work() {
+        let root = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        let mut store = Store::open(root.path().join("profile")).unwrap();
+        let mut saved = course();
+        let id = "soc-rebuild/computer-first";
+        let attempts = quiz_catalog()[id]
+            .iter()
+            .enumerate()
+            .map(|(question, &(choice, _))| QuizAttempt {
+                question: Some(question),
+                choice,
+                score: 100,
+                at: "2026-11-19T13:00:00Z".into(),
+            })
+            .collect();
+        saved.records.insert(
+            id.into(),
+            CourseRecord {
+                checks: vec![0, 1],
+                notes: "Review batch evidence".into(),
+                attempts,
+                completed_at: Some("2026-11-19T13:05:00Z".into()),
+            },
+        );
+        store.save_course(&saved).unwrap();
+        store
+            .add(id.into(), "report.txt".into(), b"synthetic record")
+            .unwrap();
+        let archive = root.path().join("review.zip");
+        store.export(&archive).unwrap();
+        let mut restored = Store::open(other.path().join("profile")).unwrap();
+        restored.restore(Backup::open(&archive).unwrap()).unwrap();
+        let loaded = restored.course().unwrap();
+        assert_eq!(
+            loaded.records["computers/architecture"].notes,
+            "Course notes"
+        );
+        assert_eq!(loaded.records[id].notes, "Review batch evidence");
+        assert_eq!(loaded.records[id].attempts.len(), 3);
+        let attachments = restored.evidence(Some(id)).unwrap();
+        assert_eq!(attachments.len(), 1);
+        assert_eq!(
+            restored.read(&attachments[0].id).unwrap().1,
+            b"synthetic record"
+        );
     }
 
     #[test]

@@ -5,6 +5,7 @@ import { motion, MotionConfig } from "motion/react";
 import { parisDay, displayDay } from "../lib/dates";
 import { freshProgress } from "../lib/progress";
 import { desktop, errorText, native, readCourse, readProgress, readReducedMotion, writeCourse, writeProgress, writeReducedMotion } from "../lib/desktop";
+import { CurriculumReview } from "./rebuild";
 import { Welcome } from "./welcome";
 import Image from "next/image";
 import type { Progress, Track } from "../lib/types";
@@ -147,11 +148,11 @@ export function Workspace() {
   }
 
   function updateLesson(id: string, change: (previous: CourseRecord) => CourseRecord) {
-    if (restoring.current) return;
+    if (restoring.current) return Promise.resolve(false);
     const prior = currentCourse.current;
     const next = applyBadges({ ...prior, records: { ...prior.records, [id]: change(prior.records[id] ?? emptyLesson()) } }, currentProgress.current);
     replaceCourse(next);
-    void enqueue(() => writeCourse(next));
+    return enqueue(() => writeCourse(next));
   }
 
   const [page, selection, lessonId, focus] = where;
@@ -160,6 +161,8 @@ export function Workspace() {
     if(historyDepth.current>0) {history.back(); return;}
     if((page==="soc"||page==="pentest")&&lessonId) location.hash=`#/${page}/${selection}`;
     else if((page==="soc"||page==="pentest")&&selection) location.hash=`#/${page}`;
+    else if(page==="learning" && lessonId) location.hash=`#/learning/${selection}`;
+    else if(page==="learning" && selection) location.hash="#/learning";
     else if(page==="lesson") location.hash=selection==="milestones"?"#/assessments":`#/module/${selection}`;
     else if(page==="module") location.hash="#/modules";
     else location.hash="#/";
@@ -176,12 +179,13 @@ export function Workspace() {
   const combined = missionCount(data,"soc")+missionCount(data,"pentest");
   const track: Track | undefined = page === "soc" || page === "pentest" ? page : undefined;
   const navPage = crashPages.includes(page) || (lesson && selection === "milestones") ? "crash" : fullPages.includes(page) || lesson ? "course" : page;
-  const title = navigation.flatMap(group => group.links).find(link => link.id === navPage)?.title ?? "Home";
+  const title = navigation.flatMap(group => group.links).find(link => link.id === navPage)?.title ?? (page === "learning" ? "Curriculum review" : "Home");
   let content: ReactNode;
   if (!today || !loaded) content = <div className="panel loading">{warning ? <div className="actions">
     <button className="button subtle" onClick={() => location.reload()}>Retry opening local data</button>
     {native() && <button className="button subtle" onClick={() => void desktop.openFolder().catch(error => setWarning(errorText(error)))}>Open data folder</button>}
   </div> : "Loading your workspace…"}</div>;
+  else if (page === "learning") content = <CurriculumReview track={selection} slug={lessonId} state={course} update={updateLesson} />;
   else if (!data.start && crashPages.includes(page) && page !== "assessments") content = <><CrashNav/><Welcome today={today} update={update} /></>;
   else if (track) content = <><CrashNav/><TrackView key={track} track={track} selection={selection} focus={lessonId} data={data} today={today} update={update} course={course} saveQuiz={(id,attempt)=>updateLesson(id,record=>({...record,attempts:[...record.attempts.slice(-99),attempt]}))} /></>;
   else if (page === "calendar") content = <><CrashNav/><CalendarView data={data} today={today} /></>;
@@ -214,7 +218,7 @@ export function Workspace() {
     await writeReducedMotion(enabled);
     setReducedMotion(enabled);
   }} />;
-  else content = <Home crash={data} state={course} today={today}/>;
+  else content = <><Home crash={data} state={course} today={today}/><p><a className="button subtle" href="#/learning">Review the new curriculum</a></p></>;
   return <div className={`shell nex-shell ${reducedMotion ? "is-reduced" : ""}`}>
     <a href="#main-content" className="skip" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>Skip to content</a>
     {mobile && <button className="scrim" aria-label="Close navigation" onClick={closeMenu} />}

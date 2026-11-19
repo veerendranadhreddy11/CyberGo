@@ -1,5 +1,7 @@
 "use client";
 
+import { reviewLessons } from "../lib/rebuild";
+import { rebuildPath } from "../lib/rebuild";
 import fixtures from "../curriculum/full-fixtures.json";
 import { getMission, trackInfo } from "../lib/catalog";
 import { nextMission } from "../lib/journey";
@@ -233,5 +235,8 @@ export function Notes({state,crash}:{state:CourseState;crash:Progress}) {
   const fullNotes=Object.entries(state.records).filter(([,record])=>record.notes.trim());
   return <><h1>Notes</h1>{!crashNotes.length&&!fullNotes.length&&<p>Notes saved in a mission or lesson appear here.</p>}
     <div className="nex-roadmap">{crashNotes.map(([id,record])=><article className="panel lesson-content" key={id}><h2><a href={`#/${id.replace("-","/")}`}>{id.toUpperCase()} · Crash Course</a></h2><p className="note-content">{record.notes}</p></article>)}
-    {fullNotes.map(([id,record])=><article className="panel lesson-content" key={id}><h2><a href={lessonLink(id)}>{[...lessons,...milestones.lessons].find(lesson=>lesson.id===id)?.title}</a></h2><p className="note-content">{record.notes}</p></article>)}</div></>;
+    {fullNotes.map(([id,record])=> {
+      const review = reviewLessons.find(lesson => lesson.id === id);
+      return <article className="panel lesson-content" key={id}><h2><a href={review ? rebuildPath(review) : lessonLink(id)}>{review?.title ?? [...lessons,...milestones.lessons].find(lesson=>lesson.id===id)?.title ?? id}</a></h2><p className="note-content">{record.notes}</p></article>;
+    })}</div></>;
 }
