@@ -1,0 +1,435 @@
+{
+  "soc-1": {
+    "minutes": 40,
+    "platform": "Windows 11 · existing host or VMware guest",
+    "tools": [
+      "Event Viewer",
+      "Windows PowerShell",
+      "VMware (optional)"
+    ],
+    "setup": "Use your own Windows 11 host directly, or start an existing Windows 11 guest in VMware on an isolated lab network. Event Viewer and Windows PowerShell are built in. Use an approved account with Security log access. Keep host account names and IPs out of exported evidence.",
+    "steps": [
+      "Confirm which machine you are using and write down whether it is your Windows host or a VMware guest. A separate guest is optional for this read-only exercise.",
+      "Press Win+R, enter eventvwr.msc and press Enter. Expand Windows Logs and select Security.",
+      "Open Filter Current Log. Enter 4624,4634,4672 in the Event IDs field and apply it. If the filter is empty, broaden the time range or use the downloadable sample below.",
+      "Open a record. In General or Details, record its timestamp, Event ID, event source and a summary. Repeat for at least three records. For 4624, note Logon Type if present and distinguish type 2 (interactive) from type 3 (network).",
+      "Run the read-only PowerShell query to compare the XML-backed event records with the Event Viewer list. A 4672 record identifies special privileges associated with a new logon. It does not itself establish a separate interactive sign-in.",
+      "Save a redacted table or screenshot, then summarize a difference between the authentication, privilege and sign-out records in your notes."
+    ],
+    "command": "# Windows Run dialog\neventvwr.msc\n\n# Windows PowerShell with approved Security log access\nGet-WinEvent -FilterHashtable @{LogName='Security'; Id=4624,4634,4672} -MaxEvents 10 | Select-Object TimeCreated,Id,ProviderName",
+    "expected": "The Authentication and Security audit provider normally shows Microsoft-Windows-Security-Auditing. 4624 records a successful sign-in, 4634 records a session ending, and 4672 identifies special privileges. Event Viewer timestamps may be shown in local time.",
+    "troubleshoot": "If access is denied, reopen PowerShell or Event Viewer with approved elevated access, or switch to your lab guest. If no matching log exists, read the supplied transcript and label your results sample-based. Do not change host auditing policy for this exercise.",
+    "checklist": [
+      "Owned Windows host, isolated guest, or sample verified",
+      "Event Viewer Security log or sample reviewed",
+      "Three records documented with timestamp and source",
+      "Event IDs distinguished in notes",
+      "Redacted evidence saved"
+    ]
+  },
+  "soc-2": {
+    "platform": "Ubuntu, Debian, or Kali with systemd",
+    "tools": [
+      "journalctl",
+      "sudo if authorized",
+      "Text editor"
+    ],
+    "setup": "Start an owned Linux guest with systemd. journalctl is installed with systemd. In a non-systemd VM, review the practice artifact using a text editor.",
+    "steps": [
+      "Run the journalctl command and read the timestamp, host, and program identifier in each entry.",
+      "If you have approved elevation, run sudo true, which performs no work, and rerun the sudo-specific query.",
+      "Compare the journal entry with the sample and classify three records by program and operation.",
+      "Save a redacted event inventory."
+    ],
+    "command": "journalctl -b -n 20 --no-pager -o short-iso\nsudo true\njournalctl -b -t sudo -n 10 --no-pager -o short-iso",
+    "expected": "The first query shows records from the current boot. Successful elevation may produce sudo command and session records, depending on logging policy.",
+    "troubleshoot": "If journald reports restricted access, use approved admin access in the lab or work from the sample. Under non-systemd environments use the downloadable excerpt."
+  },
+  "soc-3": {
+    "platform": "Linux or Kali",
+    "tools": [
+      "ip from iproute2",
+      "Text editor"
+    ],
+    "setup": "Use an owned Linux VM. On a minimal Debian-based VM install iproute2 from the distribution package manager if the ip command is missing. Plug the virtual adapter into the isolated lab switch before inventorying it.",
+    "steps": [
+      "Run ip -br link and record administrative or operational state.",
+      "Run ip -br address and match interface names to the first output.",
+      "Label loopback and select the operational lab interface. Interpret /24 as the first 24 network bits in IPv4.",
+      "If your actual address differs from the sample, document the real lab network using redacted identifiers."
+    ],
+    "command": "ip -br link\nip -br address",
+    "troubleshoot": "An interface with no IPv4 address can still be administratively up. Check VMware’s Connected option and whether a matching DHCP scope exists on that host-only network."
+  },
+  "soc-12": {
+    "platform": "Linux, macOS, or Windows",
+    "tools": [
+      "Wireshark",
+      "ping"
+    ],
+    "setup": "Install Wireshark from wireshark.org or your distribution if it is missing. On Windows allow the installer to add Npcap with loopback support. Capture only on your owned device. Open the loopback interface to generate a benign echo transaction.",
+    "steps": [
+      "In Wireshark select lo, lo0, or Npcap Loopback Adapter and start capturing.",
+      "Run the ping variant for your OS. Stop capturing after two requests.",
+      "Enter icmp in the Wireshark display filter. Open the details of a request and reply and use the sequence number to pair them.",
+      "Save the filtered view as evidence, or classify the supplied frame summary if capture privileges are unavailable."
+    ],
+    "command": "# Linux/macOS\nping -c 2 127.0.0.1\n\n# Windows\nping -n 2 127.0.0.1\n\n# Wireshark display filter\nicmp",
+    "expected": "Two requests and two replies generally appear for the live loopback exercise. The supplied transcript shows one matching pair and an unrelated ARP discovery frame.",
+    "troubleshoot": "No loopback packets usually means the wrong capture interface. On Linux use your distribution’s documented dumpcap group setup or analyze the sample. Avoid starting the entire Wireshark GUI with elevated permissions.",
+    "checklist": [
+      "Selected a loopback interface or reviewed the archive",
+      "Filtered ICMP and paired request/reply",
+      "Preserved a screenshot or frame table"
+    ]
+  },
+  "soc-18": {
+    "platform": "Windows 11",
+    "tools": [
+      "auditpol",
+      "Windows PowerShell"
+    ],
+    "setup": "Open Windows PowerShell using an approved administrator account in an owned lab. auditpol is built into Windows. This exercise reads policy.",
+    "steps": [
+      "Read the configured subcategory policies for Logon and Process Creation.",
+      "Record whether Success and Failure are enabled for each subcategory.",
+      "Compare those settings with the sample and predict whether 4624, 4625 and 4688 would be recorded under the shown policies.",
+      "Save the audit coverage decision and propose a change only where policy allows."
+    ],
+    "command": "auditpol /get /subcategory:\"Logon\"\nauditpol /get /subcategory:\"Process Creation\"",
+    "troubleshoot": "On non-English Windows use auditpol /list /subcategory:* to find localized names. If the command is denied, use the provided policy snapshot."
+  },
+  "soc-31": {
+    "platform": "Dedicated Ubuntu LTS VM for Wazuh; workstation for the browser",
+    "tools": [
+      "Wazuh quickstart",
+      "Ubuntu shell",
+      "Browser"
+    ],
+    "setup": "Use a fresh Ubuntu LTS VM supported by the Wazuh quickstart at https://documentation.wazuh.com/current/quickstart.html. Check the current all-in-one sizing table and reserve RAM, CPU and disk before installation. Keep the dashboard reachable only from the lab. If installation is impractical, complete the planning path with the supplied artifact.",
+    "steps": [
+      "Record the VM’s resources and compare them with the current quickstart table for your agent count.",
+      "When installing, open the official quickstart inside the VM and use its version-matched all-in-one installation command. Follow the guide for credentials and the browser URL; keep the generated password outside your mission evidence.",
+      "After installation, check all three service units and compare their roles with the sample.",
+      "Open the Dashboard in your lab browser. Document the intended agent-to-manager-to-indexer flow and which endpoint analysts use."
+    ],
+    "command": "free -h\ndf -h /\nfor unit in wazuh-manager wazuh-indexer wazuh-dashboard; do systemctl is-active \"$unit\"; done",
+    "troubleshoot": "If the quickstart reports an unsupported OS or insufficient memory, consult its sizing and compatibility table and use the planning artifact meanwhile. If a service is inactive use systemctl status UNIT in the Wazuh lab.",
+    "checklist": [
+      "Compared lab capacity with the current sizing table",
+      "Identified the service roles and observed or planned status",
+      "Saved a topology with the private dashboard boundary"
+    ]
+  },
+  "soc-33": {
+    "platform": "Ubuntu Wazuh manager and an owned Windows or Linux guest",
+    "tools": [
+      "Wazuh Dashboard",
+      "Wazuh agent",
+      "agent_control"
+    ],
+    "setup": "Start the all-in-one Wazuh lab from Day 31. In the Dashboard open Agents management and choose Deploy new agent. Select your guest’s real OS and package, enter the manager’s private lab address, and use the version-matched commands generated by the Dashboard on the guest.",
+    "steps": [
+      "Choose a unique agent name and verify that the guest can route only as intended to the manager's private network.",
+      "Run the generated install and service-start steps on that guest. On the manager, run the command below.",
+      "Refresh the Agents view and compare the name, ID and connection state. Record the displayed last keepalive.",
+      "Compare an active, disconnected and never-connected record using the sample. If the guest is unavailable, document the deployment plan and diagnose all three sample states."
+    ],
+    "command": "sudo /var/ossec/bin/agent_control -l",
+    "troubleshoot": "If the agent stays Never connected, compare its configured manager address with the dashboard value and inspect the agent log. Check lab routing and approved Wazuh traffic between the two machines."
+  },
+  "soc-45": {
+    "tools": [
+      "Text editor",
+      "Sigma rule format",
+      "PowerShell or grep"
+    ],
+    "setup": "Download records.txt and open a text editor. The records represent Windows Security log data. Build the selection in a local .yml note. YAML uses indentation to express structure.",
+    "steps": [
+      "Read the three controls and identify which fields have to match simultaneously.",
+      "Use the YAML below and evaluate the selection against each row independently. Mark expected and actual result for each row.",
+      "Change only the logon type in one additional hypothetical fixture and predict the outcome.",
+      "Save the YAML and a four-row test table."
+    ],
+    "command": "logsource:\n  product: windows\n  service: security\ndetection:\n  selection:\n    EventID: 4625\n    LogonType: 10\n  condition: selection",
+    "troubleshoot": "Use spaces for YAML indentation. This snippet is a rule selection. When using a SIEM converter, add the required rule metadata and confirm your backend field mapping first."
+  },
+  "soc-64": {
+    "platform": "Windows 11 lab, or any OS for the offline artifact",
+    "tools": [
+      "Windows PowerShell",
+      "PowerShell Operational log"
+    ],
+    "setup": "Use Windows PowerShell in an owned lab. Use existing Script Block Logging if already authorized. Otherwise the recorded sample provides guaranteed Event 4104 examples.",
+    "steps": [
+      "In Windows PowerShell run the read-only Get-Date and run the query below for the current host.",
+      "In Event Viewer navigate to Applications and Services Logs → Microsoft → Windows → PowerShell → Operational, and compare Events 4103 and 4104 if available.",
+      "Use the provided transcript to identify two script blocks and distinguish their text from the invocation metadata.",
+      "Save the comparison with each Event ID and whether the evidence came from the lab or the sample."
+    ],
+    "command": "Get-Date\nGet-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-PowerShell/Operational';Id=4103,4104} -MaxEvents 8 | Select-Object TimeCreated,Id,Message",
+    "troubleshoot": "If the channel or records are unavailable, confirm you are using Windows PowerShell 5.1 and use the artifact. Specific policy and workload determine which records are emitted."
+  },
+  "pentest-1": {
+    "minutes": 40,
+    "platform": "Existing VMware lab with Kali Linux and Metasploitable 2, or offline artifact",
+    "tools": [
+      "VMware Virtual Network Editor",
+      "ip (Kali)",
+      "Text editor"
+    ],
+    "setup": "Reuse your existing Kali and Metasploitable 2 guests. In VMware Settings, compare each network adapter against the same host-only virtual switch. Isolate the target before starting it and disconnect bridged or NAT adapters from the target. A saved inventory is provided for evidence analysis.",
+    "steps": [
+      "Write down the names of both guests and the selected VMware host-only virtual network.",
+      "Boot Kali. Use the local ip commands below to record its interface names, addresses and routing. Confirm that the assessment interface points to the intended host-only segment.",
+      "In VMware confirm the isolated target has only the matching host-only adapter. Where you use an archived lab inventory, note the source and observation date separately from the current topology.",
+      "Download the practice service inventory. Read each row as port/protocol, observed state and service label. Document at least five services.",
+      "Separate observations from assumptions: the table does not identify exact versions, applicable vendor patches or vulnerabilities.",
+      "Save your topology plus the service baseline. In notes, explain how a baseline helps distinguish a configuration change from an existing listener."
+    ],
+    "command": "# Kali — inspect local interfaces and routes\nip -br address\nip route show\n\n# Read the recorded inventory\ngrep -nF -- 'open' records.txt",
+    "expected": "The target adapter uses the isolated VMware network, and the sample contains six open TCP listeners. Capture the protocol and service label without inferring a precise product version.",
+    "troubleshoot": "If Kali has multiple adapters, match each interface MAC address with VMware Settings. If you cannot confirm where an adapter goes, stop using the live topology and label the service inventory as sample-based.",
+    "checklist": [
+      "Verified or diagrammed the host-only lab boundary",
+      "Recorded local Kali interface and route information or explained offline mode",
+      "Reviewed the saved service inventory",
+      "Documented at least five services without inventing versions",
+      "Saved evidence and noted how a baseline helps"
+    ]
+  },
+  "pentest-4": {
+    "platform": "Kali Linux or another Linux terminal",
+    "tools": [
+      "mkdir",
+      "chmod",
+      "stat",
+      "Text editor"
+    ],
+    "setup": "Use your own Linux VM account. The listed commands are included in a normal Kali install. Use a new private directory for disposable course artifacts.",
+    "steps": [
+      "Create separate raw and reports directories in a new directory under your user account.",
+      "Create a synthetic scope.txt in raw containing the approved lab identifier only. Apply the owner-only mode shown below.",
+      "Check and compare permissions with the sample. Keep reports separate and do not work from editable raw originals."
+    ],
+    "command": "mkdir -p ~/cybermission-lab/raw ~/cybermission-lab/reports\nchmod 700 ~/cybermission-lab ~/cybermission-lab/raw ~/cybermission-lab/reports\nprintf '%s\\n' 'lab-only' > ~/cybermission-lab/raw/scope.txt\nchmod 600 ~/cybermission-lab/raw/scope.txt\nstat -c '%a %n' ~/cybermission-lab/raw ~/cybermission-lab/raw/scope.txt",
+    "troubleshoot": "Run the commands in the owned VM under your own account. Use a new directory name if that training folder already exists and contains work. On macOS replace the stat argument format with stat -f '%Lp %N'.",
+    "checklist": [
+      "Created or mapped raw and report folders",
+      "Verified permission modes and who has access",
+      "Saved workspace evidence without secrets"
+    ]
+  },
+  "pentest-6": {
+    "platform": "Kali Linux",
+    "tools": [
+      "ss",
+      "Text editor"
+    ],
+    "setup": "Use an existing owned Kali guest. ss ships with iproute2 and reads local kernel socket state. Work only from the guest’s existing local listeners or the supplied sample.",
+    "steps": [
+      "List TCP and UDP listening sockets. Record which address and port each sample or live socket binds.",
+      "Compare IPv4 and IPv6 loopback with wildcard binds. Check the local interface list to name possible device boundaries.",
+      "Record at least one local exposure control that you would corroborate before drawing a conclusion about remote reachability."
+    ],
+    "command": "ss -lntu\nip -br address",
+    "troubleshoot": "If a VM has few listeners, use the sample for the comparison. A port can be bound locally even when firewall policy denies all remote traffic."
+  },
+  "pentest-31": {
+    "platform": "Kali, Windows or macOS",
+    "tools": [
+      "Burp Suite Community",
+      "Python 3",
+      "Burp embedded browser"
+    ],
+    "setup": "Install Burp Suite Community using the official PortSwigger download if needed. Use a separate lab browser and a local folder containing only a disposable index.html with ordinary text. Install Python 3 through your OS package manager or python.org if missing.",
+    "steps": [
+      "From the disposable folder, run the command to serve it only on IPv4 loopback.",
+      "In Burp use a temporary project and set Target Scope to include only http://127.0.0.1:8000. Under Proxy open the embedded browser with Intercept off.",
+      "Navigate to http://127.0.0.1:8000 and verify the normal GET in Proxy → HTTP history. Record its method, status and content type.",
+      "Stop the Python server with Ctrl+C and close the temporary project. Use the supplied archived settings if you cannot install Burp."
+    ],
+    "command": "# In a disposable folder containing a harmless index.html\npython3 -m http.server 8000 --bind 127.0.0.1",
+    "expected": "The normal page returns HTTP 200 and appears in Burp’s history. The listener and target remain on loopback and the scope lists only the disposable app.",
+    "troubleshoot": "If the port is in use, use another unused loopback port consistently in the command, scope and URL. On Windows use py -3 in place of python3 where needed."
+  },
+  "soc-23": {
+    "platform": "Windows PowerShell, Linux, or macOS",
+    "tools": [
+      "Get-FileHash, sha256sum, or shasum",
+      "Text editor"
+    ],
+    "setup": "Download records.txt into a private folder. Open a terminal there. Use the command block for your OS to make two byte-identical copies of the training artifact.",
+    "steps": [
+      "Record the original digest and hash a copy before editing it.",
+      "Append the harmless text changed to the second copy, then calculate all three digests again.",
+      "Compare the live result with the sample manifest. Identify a second provenance field that a digest cannot record."
+    ],
+    "command": "# Linux\ncp records.txt copy.txt\ncp records.txt altered.txt\nprintf '\\nchanged\\n' >> altered.txt\nsha256sum records.txt copy.txt altered.txt\n\n# macOS: use the same copy commands, then:\nshasum -a 256 records.txt copy.txt altered.txt\n\n# Windows PowerShell\nCopy-Item records.txt copy.txt\nCopy-Item records.txt altered.txt\nAdd-Content altered.txt changed\nGet-FileHash records.txt,copy.txt,altered.txt -Algorithm SHA256",
+    "expected": "The two identical files have the same SHA-256 digest. The edited copy has a different digest. The sample comparisons are separate from your locally calculated values.",
+    "troubleshoot": "Run the OS-specific group only once. If two supposedly identical files differ, compare sizes and confirm you used a file copy rather than resaving through an editor.",
+    "checklist": [
+      "Hashed the original and both copies",
+      "Explained the match and changed digest",
+      "Saved a digest manifest and custody fields"
+    ]
+  },
+  "soc-34": {
+    "platform": "Windows lab endpoint and an Ubuntu Wazuh manager",
+    "tools": [
+      "Windows Event Viewer",
+      "Wazuh agent",
+      "Wazuh Dashboard"
+    ],
+    "setup": "Use the enrolled Windows agent from Day 33. Confirm Event ID 4624 is present in the local Security log. Review the agent’s existing ossec.conf before adding a channel, as many installations already collect Security. Use the supplied artifact to diagnose an offline configuration.",
+    "steps": [
+      "Locate the agent configuration in its installation directory under Program Files (x86). Preserve a copy before approved configuration changes.",
+      "Check whether an existing localfile block uses Security and eventchannel. If it is absent in your lab, add the fragment below inside ossec_config and restart the service.",
+      "Sign in normally to the lab Windows guest, then check the local Security log for the matching timestamp and event.",
+      "In the Wazuh Dashboard filter to the Windows agent and the new timestamp. Look for data.win.system.eventID 4624 in available event records. Compare the Dashboard result with the local evidence."
+    ],
+    "command": "<!-- Local Wazuh ossec.conf: add only when Security collection is absent -->\n<localfile>\n  <location>Security</location>\n  <log_format>eventchannel</log_format>\n</localfile>\n\n# Elevated Windows PowerShell after an authorized change\nRestart-Service WazuhSvc\nGet-Service WazuhSvc\nGet-WinEvent -FilterHashtable @{LogName='Security';Id=4624} -MaxEvents 3",
+    "expected": "Local events prove the source is writing. The active agent subscription is required for forwarding. An alert view displays events that matched alert rules and may not show every collected sign-in.",
+    "troubleshoot": "If the local Security record exists but the agent is offline, troubleshoot enrollment first. If the agent is connected, confirm the exact channel and the Wazuh display time range. For raw-vs-alert visibility check the configured archive or an approved collection test.",
+    "checklist": [
+      "Verified local Security telemetry",
+      "Reviewed the agent subscription and state",
+      "Saved local and downstream evidence with a documented limitation"
+    ]
+  },
+  "soc-35": {
+    "platform": "Systemd-based Linux lab agent",
+    "tools": [
+      "journalctl",
+      "Wazuh agent",
+      "systemctl"
+    ],
+    "setup": "Use the Linux agent enrolled in Day 33 or the provided snapshot. In an owned lab, inspect /var/ossec/etc/ossec.conf with approved permissions. Some distributions store authentication records in journald and do not create /var/log/auth.log.",
+    "steps": [
+      "Check for recent records in the SSH or sshd unit and check whether /var/log/auth.log exists.",
+      "Compare the actual source with each localfile location in the agent configuration. If journald collection is required and absent, configure the journal block shown below in your lab only.",
+      "Restart the agent after the approved change. Inspect its recent agent logs to verify that it is running and reporting normally.",
+      "Save the before/after input source and classify the gap in the sample."
+    ],
+    "command": "journalctl -u ssh -u sshd -n 10 --no-pager\nls -l /var/log/auth.log\n\n<!-- Agent ossec.conf fragment, when a journal input is needed -->\n<localfile>\n  <location>journald</location>\n  <log_format>journald</log_format>\n</localfile>\n\n# After an authorized configuration change\nsudo systemctl restart wazuh-agent\nsudo systemctl is-active wazuh-agent",
+    "expected": "The system journal may contain authentication records even when the traditional log file is absent. A working agent must be configured for the source actually used.",
+    "troubleshoot": "A missing SSH unit is normal when the lab has no SSH server. Use the sample and choose an approved service for a local journal check. If restart fails, restore the preserved config and inspect the agent logs.",
+    "checklist": [
+      "Compared the journal and file availability",
+      "Matched the actual source to the collection configuration",
+      "Recorded expected collection and agent health"
+    ]
+  },
+  "soc-38": {
+    "platform": "Linux, macOS, or Windows with Python 3",
+    "tools": [
+      "Python 3",
+      "Text editor"
+    ],
+    "setup": "Download records.txt. Install Python 3 from your distribution or python.org if needed. In the same folder create count_failures.py and paste the Python below. This command only reads the provided synthetic artifact.",
+    "steps": [
+      "Run the script and compare Lee’s result to Sam’s. The filter limits the sample to four minutes and counts failures only.",
+      "Change the threshold from three to four and predict the result before rerunning.",
+      "Keep the three-failure rule and add a synthetic failure from a newly named account on a copied artifact. Confirm that it does not increase Lee’s total.",
+      "Write a concise rule describing the grouping key, time window and threshold."
+    ],
+    "command": "# count_failures.py\nfrom collections import Counter\nfrom pathlib import Path\n\ncounts = Counter()\nfor line in Path(\"records.txt\").read_text(encoding=\"utf-8\").splitlines():\n    time, account, outcome = line.split()\n    if \"10:00\" <= time <= \"10:04\" and outcome == \"fail\":\n        counts[account.removeprefix(\"user=\")] += 1\nprint(dict(counts))\nprint(\"alerts:\", sorted(user for user, count in counts.items() if count >= 3))\n\n# Run from the folder with records.txt\n# Linux and macOS: python3 count_failures.py\n# Windows: py -3 count_failures.py",
+    "expected": "Lee has three qualifying failures and Sam has one. The threshold of three returns Lee; four returns an empty alert list.",
+    "troubleshoot": "Keep the sample whitespace-separated into three fields per line. A ValueError about unpacking means a fixture row was changed to an unsupported format.",
+    "checklist": [
+      "Ran the aggregation on the offline events",
+      "Compared two thresholds and an independent account control",
+      "Saved the detection criteria and counts"
+    ]
+  },
+  "soc-61": {
+    "platform": "Windows 11 lab or any OS with the recorded exercise",
+    "tools": [
+      "Sysmon",
+      "Event Viewer",
+      "Windows PowerShell"
+    ],
+    "setup": "Use an existing Sysmon installation in an owned Windows guest or download the official Microsoft Sysinternals package. In the VM, verify the signed executable and documented installation options before installing. The source is https://learn.microsoft.com/sysinternals/downloads/sysmon. Use the provided excerpt if you cannot add instrumentation.",
+    "steps": [
+      "If Sysmon is already installed, open its Operational channel and find Process Create events. Sysmon records extended process and network telemetry according to its rules.",
+      "In the owned VM open Notepad normally and rerun the read-only query. Locate the image, parent image, user and ProcessGuid fields in Details.",
+      "Draw both parent-child pairs in the supplied evidence. Write one operational explanation that could account for a service spawning a shell and one source to check.",
+      "Record what you saw and which settings may limit the available records."
+    ],
+    "command": "Get-AuthenticodeSignature .\\Sysmon64.exe | Select-Object Status\n# Only in the disposable lab VM, if installation is approved:\n.\\Sysmon64.exe -accepteula -i\n# Start Notepad normally from the Start menu, then:\nGet-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Sysmon/Operational';Id=1} -MaxEvents 15 | Select-Object TimeCreated,Id,Message",
+    "expected": "Event 1 captures process creation. The ProcessGuid is useful for following a process across other Sysmon records and the parent fields describe ancestry at creation.",
+    "troubleshoot": "If you are using preinstalled Sysmon, skip the install and signature commands. If the event channel is missing or a process is excluded by configuration, use the sample for the comparison.",
+    "checklist": [
+      "Identified Process Create in the live or archived channel",
+      "Recorded image, parent, user and ProcessGuid",
+      "Saved parent-child evidence and one corroboration step"
+    ]
+  },
+  "pentest-25": {
+    "platform": "Kali, Linux, macOS, or Windows with Python 3",
+    "tools": [
+      "Python 3",
+      "csv and json standard library modules",
+      "Text editor"
+    ],
+    "setup": "Download records.txt in a disposable workspace. Each line is a JSON object. Install Python 3 from your distribution or python.org if missing. Paste the code into export_inventory.py.",
+    "steps": [
+      "Read both input records and list the fields that must survive conversion.",
+      "Run the script for your OS. Open inventory.csv in a text editor and compare its heading and both rows with records.txt.",
+      "Confirm the UDP status remains open|filtered and write why collapsing it into open would misstate the observation."
+    ],
+    "command": "# export_inventory.py\nimport csv\nimport json\nfrom pathlib import Path\n\ncolumns = (\"host\", \"protocol\", \"port\", \"state\")\nrecords = [json.loads(line) for line in Path(\"records.txt\").read_text(encoding=\"utf-8\").splitlines()]\nwith Path(\"inventory.csv\").open(\"w\", newline=\"\", encoding=\"utf-8\") as target:\n    writer = csv.DictWriter(target, fieldnames=columns)\n    writer.writeheader()\n    writer.writerows(records)\n\n# Linux/macOS: python3 export_inventory.py\n# Windows: py -3 export_inventory.py",
+    "expected": "inventory.csv has the fields host, protocol, port and state, and two data rows. Preserve open|filtered as a single status.",
+    "troubleshoot": "If JSON decoding fails, make sure you downloaded the artifact rather than copying the command display. If the output target is in use, close it in your spreadsheet program.",
+    "checklist": [
+      "Converted the offline inventory to CSV",
+      "Compared both original and exported records",
+      "Retained the ambiguous state with its explanation"
+    ]
+  },
+  "pentest-35": {
+    "platform": "Kali, Linux, macOS, or Windows with Python 3",
+    "tools": [
+      "Python 3",
+      "SQLite via the sqlite3 standard library module"
+    ],
+    "setup": "Use a scratch file named safe_query.py. The exercise uses an in-memory database with two fictional products and tests how punctuation is treated in ordinary product data.",
+    "steps": [
+      "Create the script below. Locate the SQL placeholder and its separate one-value tuple.",
+      "Run the script and verify the assertions for a normal SKU, a punctuation-containing SKU and an absent SKU.",
+      "Add another ordinary product label containing a quote through the bound insert statement and add an equality assertion for it. Keep query text fixed.",
+      "Write what the test shows about the boundary between input values and SQL syntax."
+    ],
+    "command": "# safe_query.py\nimport sqlite3\n\ndb = sqlite3.connect(\":memory:\")\ndb.execute(\"CREATE TABLE items (sku TEXT PRIMARY KEY, name TEXT)\")\ndb.executemany(\"INSERT INTO items VALUES (?, ?)\", [(\"A101\", \"Adapter\"), (\"KIT'BLUE\", \"Blue kit\")])\n\ndef find_item(sku):\n    return db.execute(\"SELECT name FROM items WHERE sku = ?\", (sku,)).fetchone()\n\nassert find_item(\"A101\") == (\"Adapter\",)\nassert find_item(\"KIT'BLUE\") == (\"Blue kit\",)\nassert find_item(\"MISSING\") is None\nprint(\"Three parameter-binding checks passed.\")\n\n# Linux/macOS: python3 safe_query.py\n# Windows: py -3 safe_query.py",
+    "expected": "All three assertions pass. The apostrophe is part of the product value. The query structure stays the same for every input.",
+    "troubleshoot": "The comma in (sku,) is required for a one-item tuple. If a fixture fails, inspect exact casing and punctuation before editing the query.",
+    "checklist": [
+      "Ran the three defensive parameter-binding checks",
+      "Added and tested a benign punctuation fixture",
+      "Saved the expected behavior and test output"
+    ]
+  },
+  "pentest-104": {
+    "platform": "Kali, Linux, macOS, or Windows with Python 3",
+    "tools": [
+      "Python 3",
+      "unittest standard library module",
+      "Text editor"
+    ],
+    "setup": "Create test_normalizer.py in an independent scratch folder. Use fictional records only. Keep this code separate from your existing project.",
+    "steps": [
+      "Write the function and run the tests shown below.",
+      "Read the original record after normalization and check that it is unchanged.",
+      "Add a second test case with a distinct case-sensitive identifier. Keep the controlled state and host normalized but preserve the supplied ID exactly.",
+      "Record which transformations the adapter performs and which identity data it preserves."
+    ],
+    "command": "# test_normalizer.py\nimport unittest\n\ndef normalize(record):\n    return {**record, \"host\": record[\"host\"].lower(), \"state\": record[\"state\"].lower()}\n\nclass NormalizerTests(unittest.TestCase):\n    def test_normalized_fields(self):\n        original = {\"id\": \" F1-A \", \"host\": \"Lab-ONE\", \"state\": \"CONFIRMED\"}\n        self.assertEqual(normalize(original), {\"id\": \" F1-A \", \"host\": \"lab-one\", \"state\": \"confirmed\"})\n        self.assertEqual(original[\"host\"], \"Lab-ONE\")\n\n# Linux/macOS: python3 -m unittest -v test_normalizer\n# Windows: py -3 -m unittest -v test_normalizer",
+    "expected": "The test passes and retains whitespace and case in the identifier. The original input object still reads Lab-ONE.",
+    "troubleshoot": "Run the test from the same folder as test_normalizer.py and omit the .py extension in the module argument. A failed ID check indicates a normalization step touched an identity field.",
+    "checklist": [
+      "Ran the original defensive normalizer test",
+      "Added a case-sensitive ID fixture",
+      "Confirmed the input was preserved and saved test results"
+    ]
+  }
+}

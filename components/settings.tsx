@@ -1,0 +1,125 @@
+"use client";
+
+import { useState } from "react";
+import { CalendarDays, Download, HardDrive, Upload } from "lucide-react";
+import { parseBackup } from "../lib/progress";
+import { displayDay, isDay } from "../lib/dates";
+import { download } from "../lib/evidence";
+import { desktop, errorText, native, type BackupPreview } from "../lib/desktop";
+import type { Day, Progress } from "../lib/types";
+
+export type UpdateProgress = (change: (progress: Progress) => Progress, replace?: boolean) => Promise<boolean>;
+type Pending = { kind: "zip"; data: BackupPreview } | { kind: "legacy"; data: Progress };
+
+export function Settings({ data, today, update, restoreBackup, flush, reducedMotion, saveMotion }: {
+  data: Progress;
+  today: Day;
+  update: UpdateProgress;
+  restoreBackup: (token: string) => Promise<void>;
+  reducedMotion: boolean;
+  saveMotion: (enabled: boolean) => Promise<void>;
+  flush: () => Promise<boolean>;
+}) {
+  const [date, setDate] = useState<Day>();
+  const [schedule, setSchedule] = useState<Day>();
+  const [message, setMessage] = useState("");
+  const [pending, setPending] = useState<Pending>();
+  const [busy, setBusy] = useState(false);
+  const installed = native();
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setMessage("");
+    try { await action(); }
+    catch (error) { setMessage(errorText(error)); }
+    finally { setBusy(false); }
+  }
+
+  async function inspectLegacy(file: File) {
+    setPending(undefined);
+    await run(async () => {
+      if (file.size > 50_000_000) throw new Error("Choose a JSON backup under 50 MB.");
+      try { setPending({ kind: "legacy", data: parseBackup(await file.text()) }); }
+      catch (error) { if (error instanceof SyntaxError) throw new Error("This file is not valid JSON."); throw error; }
+    });
+  }
+
+  return <>
+    <div className="page-heading"><h1>Settings</h1><p>Manage your journey schedule and local backups.</p></div>
+    <section className="panel settings-panel">
+      <div className="chart-head"><h2>Journey schedule</h2><CalendarDays size={22} /></div>
+      <p>Both paths use this date for Day 1. Changing the date shifts the calendar while preserving completed missions, notes, and actual study dates.</p>
+      <form onSubmit={event => { event.preventDefault(); const chosen = date ?? data.start ?? today; if (isDay(chosen)) setSchedule(chosen); }}>
+        <label>Start date<input type="date" required value={date ?? data.start ?? today} onChange={event => setDate(event.target.value)} /></label>
+        <button className="button primary" type="submit">Save start date</button>
+      </form>
+      {schedule && <div className="notice"><p>Use {displayDay(schedule, { dateStyle: "long" })} as Day 1 for both paths?</p>
+        <div className="actions">
+          <button className="button primary" onClick={() => void run(async () => {
+            if (await update(current => ({ ...current, start: schedule }))) {
+              setSchedule(undefined); setMessage("Journey start date saved.");
+            }
+          })} disabled={busy}>Confirm date change</button>
+          <button className="button subtle" onClick={() => setSchedule(undefined)}>Cancel</button>
+        </div>
+      </div>}
+      <p className="small muted">Calendar time zone: Europe/Paris</p>
+    </section>
+    <section className="panel settings-panel">
+      <div className="chart-head"><h2>Backup and restore</h2><HardDrive size={22} /></div>
+      <p>CyberGo saves your learning progress locally on this computer. Your data does not automatically synchronize between devices. Export a backup if you want to move your progress to another computer.</p>
+      {installed && <p>Keep a copy of your backup somewhere you can access if you lose this computer. ZIP backups include records and evidence attachments.</p>}
+      <div className="actions">
+        <button className="button primary" disabled={busy} onClick={() => void run(async () => {
+          if (!await flush()) throw new Error("Retry saving your progress before exporting.");
+          if (installed) {
+            if (await desktop.exportBackup()) setMessage("Backup exported.");
+          } else {
+            download(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `cybergo-${today}.backup.json`);
+          }
+        })}><Download size={17} /> {installed ? "Export my data" : "Export backup"}</button>
+        {installed && <>
+          <button className="button subtle" disabled={busy} onClick={() => void run(async () => {
+            setPending(undefined);
+            const preview = await desktop.inspect();
+            if (preview) setPending({ kind: "zip", data: preview });
+          })}><Upload size={17} /> Import my data</button>
+          <button className="button subtle" disabled={busy} onClick={() => void run(async () => { await desktop.openFolder(); })}>Open data folder</button>
+        </>}
+        <label className="button subtle file-label"><Upload size={17} /> {installed ? "Import browser JSON" : "Select backup"}
+          <input type="file" disabled={busy} accept=".json,application/json" aria-label={installed ? "Import browser JSON" : "Select backup"}
+            onChange={event => { const file = event.target.files?.[0]; if (file) void inspectLegacy(file); event.target.value = ""; }} />
+        </label>
+      </div>
+      {pending && <div className="notice">
+        <p>{pending.kind === "zip"
+          ? `Restore ${pending.data.summary.missions} mission records and ${pending.data.summary.attachments} attachments. Start date: ${pending.data.summary.start ?? "unset"}.`
+          : `Restore ${Object.keys(pending.data.missions).length} mission records from a browser backup. Existing evidence stays attached to its mission.`}</p>
+        <p>Restoring replaces current progress. Export a backup first if you want to keep a copy.</p>
+        <div className="actions">
+          <button className="button primary" disabled={busy} onClick={() => void run(async () => {
+            if (!await flush()) throw new Error("Retry saving your progress before restoring.");
+            if (pending.kind === "zip") await restoreBackup(pending.data.token);
+            else if (!await update(() => pending.data, true)) return;
+            setDate(undefined); setPending(undefined); setMessage("Backup restored.");
+          })}>Restore backup</button>
+          <button className="button subtle" disabled={busy} onClick={() => void run(async () => {
+            if (pending.kind === "zip") await desktop.cancel();
+            setPending(undefined);
+          })}>Cancel</button>
+        </div>
+      </div>}
+      {message && <p role="status">{message}</p>}
+    </section>
+    <section className="panel settings-panel">
+      <h2>Appearance</h2>
+      <label className="motion-setting"><input type="checkbox" disabled={busy} checked={reducedMotion}
+        onChange={event => { const checked = event.currentTarget.checked; void run(async () => { await saveMotion(checked); }); }} /> Reduce interface motion</label>
+    </section>
+    <section className="panel settings-panel">
+      <h2>About CyberGo</h2>
+      <p>Version 1.0.0 · Learn. Practice. Progress.</p>
+      <p>Two offline learning paths with 120 missions each. Practice in your own authorized lab and use CyberGo to record what you learn.</p>
+    </section>
+  </>;
+}

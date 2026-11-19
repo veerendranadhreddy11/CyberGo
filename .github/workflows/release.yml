@@ -1,0 +1,99 @@
+name: CyberGo desktop builds
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2022
+            target: x86_64-pc-windows-msvc
+            bundle: nsis
+            platform: Windows-x64
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            bundle: dmg
+            platform: macOS-AppleSilicon
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            bundle: dmg
+            platform: macOS-Intel
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify version
+        id: version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          tauri_version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          test "$version" = "$tauri_version"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then test "${GITHUB_REF_NAME}" = "v$version"; fi
+          echo "number=$version" >> "$GITHUB_OUTPUT"
+      - run: rustup toolchain install stable --profile minimal --component rustfmt
+      - run: rustup target add "${{ matrix.target }}"
+      - run: npm ci
+      - run: npm run lint && npm run typecheck && npm run validate && npm test
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
+      - name: Build native package
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
+        run: npm run desktop -- build --target "${{ matrix.target }}" --bundles "${{ matrix.bundle }}"
+      - name: Verify archive contents
+        run: python scripts/package-release.py "${{ matrix.platform }}" "${{ steps.version.outputs.number }}"
+      - name: Test installed Windows package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/smoke-windows.ps1
+      - name: Test application from macOS disk image
+        if: runner.os == 'macOS'
+        run: bash scripts/smoke-macos.sh "release/CyberGo-${{ matrix.platform }}.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CyberGo-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: CyberGo-*
+          merge-multiple: true
+          path: release
+      - name: Generate and verify SHA-256 checksums
+        working-directory: release
+        run: |
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 6
+          sha256sum *.zip *.dmg *.exe > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+      - name: Publish verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "CyberGo $GITHUB_REF_NAME" --notes-file "docs/Release_Notes_$GITHUB_REF_NAME.md"
+          gh release view "$GITHUB_REF_NAME" --json url,assets
