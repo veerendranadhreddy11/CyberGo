@@ -45,15 +45,15 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
   }
 
   return <>
-    <div className="page-heading"><h1>Settings</h1><p>Manage your journey schedule and local backups.</p></div>
+    <div className="page-heading"><h1>Settings</h1><p>Manage your start date, display preferences, and local backups.</p></div>
     <section className="panel settings-panel">
       <div className="chart-head"><h2>Journey schedule</h2><CalendarDays size={22} /></div>
-      <p>Both paths use this date for Day 1. Changing the date shifts the calendar while preserving completed missions, notes, and actual study dates.</p>
+      <p>The selected start date is shared by both tracks and sets the first day of elapsed time. Changing it preserves mission positions and actual completion dates.</p>
       <form onSubmit={event => { event.preventDefault(); const chosen = date ?? data.start ?? today; if (isDay(chosen)) setSchedule(chosen); }}>
         <label>Start date<input type="date" required value={date ?? data.start ?? today} onChange={event => setDate(event.target.value)} /></label>
         <button className="button primary" type="submit">Save start date</button>
       </form>
-      {schedule && <div className="notice"><p>Use {displayDay(schedule, { dateStyle: "long" })} as Day 1 for both paths?</p>
+      {schedule && <div className="notice"><p>Use {displayDay(schedule, { dateStyle: "long" })} as the start date for both paths?</p>
         <div className="actions">
           <button className="button primary" onClick={() => void run(async () => {
             if (await update(current => ({ ...current, start: schedule }))) {
@@ -118,7 +118,7 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
     </section>
     <section className="panel settings-panel">
       <h2>About CyberNex</h2>
-      <p>Version 2.0.0 · Learn. Practice. Progress.</p>
+      <p>Version 2.1.0 · Learn. Practice. Progress.</p>
       <p>Choose a 120-day Crash Course or study the Full Cybersecurity Course at your own pace. Practice in your own authorized lab and use CyberNex to record what you learn.</p>
     </section>
   </>;

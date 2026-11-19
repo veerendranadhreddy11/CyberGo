@@ -4,12 +4,13 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { activity, checklistPercent, percent, status, streaks } from "../lib/progress";
 import { addDays, displayDay, distance, journeyDay } from "../lib/dates";
 import { getMission, trackInfo } from "../lib/catalog";
+import { nextMission, calendarDays } from "../lib/journey";
 import { tracks, type Day, type Progress, type Track } from "../lib/types";
-import { Meter, pad, Ring, Status, trackHref, TrackIcon } from "./shared";
+import { Meter, Ring, Status, trackHref, TrackIcon } from "./shared";
 
 export function Dashboard({ data, today }: { data: Progress; today: Day }) {
   const current = journeyDay(data.start, today);
-  const day = Math.min(120, Math.max(1, current));
+
   const record = activity(data);
   const study = new Set([...record.completed.map(item => item.day), ...Object.keys(record.minutesByDay)]);
   const streak = streaks([...study], today);
@@ -26,14 +27,14 @@ export function Dashboard({ data, today }: { data: Progress; today: Day }) {
       <div className="hero-orbit" aria-hidden="true"><span /><span /><span /><i /><i /><i /></div>
     </section>
     <section className="stat-grid" aria-label="Journey statistics">
-      <Stat icon={<CalendarDays size={19} />} label="Journey day" number={current > 120 ? "Archive" : current < 1 ? "Upcoming" : `Day ${pad(current)}`} detail="of 120 days" />
+      <Stat icon={<CalendarDays size={19} />} label="Elapsed calendar days" number={data.start && current>=1 ? String(calendarDays(data.start,today)) : "Upcoming"} detail="Start day included" />
       <Stat icon={<Flame size={20} />} label="Learning streak" number={`${streak.current} ${streak.current === 1 ? "day" : "days"}`} detail={`Longest streak · ${streak.longest}`} color="orange" />
       <Stat icon={<CheckCircle2 size={19} />} label="Missions completed" number={String(done)} detail="of 240 missions" color="green" />
       <Stat icon={<Target size={20} />} label="Overall progress" number={`${percent(done, 240)}%`} detail="Across both learning paths" />
     </section>
-    <div className="section-heading"><div><h2>Learning paths</h2><p>Two tracks. One 120-day journey.</p></div><span className="section-meta"><Layers3 size={16} /> 120 missions per path</span></div>
+    <div className="section-heading"><div><h2>Learning paths</h2><p>Two independent sequences of 120 missions.</p></div><span className="section-meta"><Layers3 size={16} /> 120 missions per path</span></div>
     <section className="track-grid" aria-label="Learning paths">
-      {tracks.map(track => <TrackCard track={track} key={track} data={data} today={today} current={current} day={day} />)}
+      {tracks.map(track => <TrackCard track={track} key={track} data={data} today={today} current={current} day={nextMission(data,track)?.day ?? 120} />)}
     </section>
     <Analytics data={data} today={today} compact />
   </>;
@@ -56,7 +57,7 @@ function TrackCard({ track, data, today, current, day }: { track: Track; data: P
       <a className="track-ring-link" href={trackHref(track)} aria-label={"Open " + info.name + " progress"}><Ring value={percent(completed.completed.length, 120)} /></a>
     </div>
     <div className="track-mission">
-      <div className="track-mission-label"><span>{current > 120 ? "FINAL MISSION" : current < 1 ? "FIRST MISSION" : "TODAY’S MISSION"}</span><Status value={status(entry, day, current)} /></div>
+      <div className="track-mission-label"><span>{current < 1 ? "UPCOMING JOURNEY" : "COURSE POSITION"}</span><Status value={status(entry, day, current)} /></div>
       <p title={mission.title}>{mission.title}</p>
       <div className="track-meter"><Meter value={checked} label="Mission checklist" /><span>{checked}%</span></div>
     </div>
@@ -82,9 +83,7 @@ export function Analytics({ data, today, compact = false }: { data: Progress; to
     return { name: displayDay(`${month}-01`, { month: "short", year: "2-digit" }), missions: record.completed.filter(item => item.day.startsWith(month)).length, hours: Math.round(minutes / 6) / 10 };
   });
   const dual = streaks([...byDay.entries()].filter(([, count]) => count.soc && count.pentest).map(([date]) => date), today);
-  const current = journeyDay(data.start, today);
-  const currentDay = Math.max(1, current);
-  const scheduled = current >= 1 && current <= 120;
+  const upcoming = tracks.flatMap(track => { const next = nextMission(data,track); return next ? [next] : []; });
   const heat = Array.from({ length: 91 }, (_, index) => {
     const day = addDays(today, index - 90);
     const count = byDay.get(day);
@@ -108,7 +107,7 @@ export function Analytics({ data, today, compact = false }: { data: Progress; to
         <div className="chart-legend"><span><i className="purple-dot" /> Missions</span><span><i className="green-dot" /> Study hours</span>{!months.some(month => month.missions || month.hours) && <span>No monthly activity yet</span>}</div>
       </article>
       <article className="panel chart summary"><div className="chart-head"><div><h3>Journey snapshot</h3><p>Progress across both learning paths</p></div><Trophy size={20} /></div>
-        <div className="snapshot"><Ring mini value={percent(record.completed.length, 240)} /><dl><div><dt>Practical labs completed</dt><dd>{record.completed.length}</dd></div><div><dt>Study hours recorded</dt><dd>{(record.minutes / 60).toFixed(1)} h</dd></div><div><dt>Both-track completion streak</dt><dd>{dual.current} d</dd></div><div><dt>Today’s scheduled missions</dt><dd>{scheduled ? `${tracks.filter(track => data.missions[getMission(track, currentDay).id]?.completedAt).length} / 2` : "—"}</dd></div></dl></div>
+        <div className="snapshot"><Ring mini value={percent(record.completed.length, 240)} /><dl><div><dt>Practical labs completed</dt><dd>{record.completed.length}</dd></div><div><dt>Study hours recorded</dt><dd>{(record.minutes / 60).toFixed(1)} h</dd></div><div><dt>Both-track completion streak</dt><dd>{dual.current} d</dd></div><div><dt>Completed today</dt><dd>{record.completed.filter(item=>item.day===today).length}</dd></div></dl></div>
       </article>
     </div>
     <div className="analytics-grid history-grid">
@@ -119,10 +118,8 @@ export function Analytics({ data, today, compact = false }: { data: Progress; to
         })}</ul> : <p className="empty">Completed missions appear here.</p>}
       </article>
       <article className="panel chart"><div className="chart-head"><h3>Upcoming missions</h3><ListChecks size={20} /></div>
-        {currentDay < 120 ? <ul className="plain-list">{tracks.map(track => {
-          const mission = getMission(track, current < 1 ? 1 : currentDay + 1);
-          return <li key={track}><a href={trackHref(track, mission.day)}>{mission.title}</a><span>Day {pad(mission.day)}</span></li>;
-        })}</ul> : <p className="empty">You’ve reached the end of the schedule. All missions are available in the calendar.</p>}
+        {upcoming.length ? <ul className="plain-list">{upcoming.map(mission => <li key={mission.id}><a href={trackHref(mission.track,mission.day)}>{mission.title}</a><span>Mission {mission.day}</span></li>)}</ul>
+          : <p className="empty">Both learning tracks are complete.</p>}
       </article>
     </div>
   </section>;

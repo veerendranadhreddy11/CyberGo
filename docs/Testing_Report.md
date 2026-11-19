@@ -1,18 +1,10 @@
-# CyberNex testing report
+# CyberNex 2.1 testing report
 
 | Check | Result |
 | --- | --- |
-| Original curriculum | 120 SOC and 120 Pentesting missions validated. Existing catalog files match the prior release. |
-| Full Course | 41 lessons across ten modules and four optional Crash Course assessments validated. |
-| Frontend checks | Lint, TypeScript, nine unit tests, and the production build passed. |
-| Native storage tests | Six Rust unit tests and the backup portability test harness passed locally. |
-| SQLite upgrade | A synthetic v1 database upgraded with its date, checklist, notes, and time intact. |
-| Backup and evidence | Version 2 round-trip, legacy import preserving Full Course data, and unsafe ZIP rejection passed. |
-| Offline local frontend | Five Chromium tests passed for both modes, saved quizzes, notes, priority module, completion, date handling, and offline artwork. |
-| Windows installed upgrade | Passed on a Windows Server 2022 runner. A real CyberGo v1 installation upgraded to CyberNex with both tracks, journey date, notes, preferences, and evidence intact. |
-| Intel macOS installed upgrade | Passed on Intel macOS 15. CyberNex opened the same app data after both disk images were exercised with a synthetic upgrade fixture. |
-| Apple Silicon | Cross-built on Intel macOS. The ARM64 executable, mounted disk image, ad hoc signing metadata, and release ZIP passed verification. Native ARM startup remains unverified. |
-| Cross-platform backup transfer | A version 2 backup was restored from Windows to macOS and macOS to Windows, including lesson progress, quiz score, preferred module, achievements, and evidence. [Backup workflow](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44550671555) |
-| Public downloads | All seven assets responded publicly. Each platform ZIP was downloaded and its installer matched the standalone SHA-256 digest. The v1.0.0 release asset digests match the prior release. |
-
-[Package workflow](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44552469585) · [Published release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v2.0.0)
+| Catalog | The original 120 SOC and 120 Pentesting missions and 41 Full Course lessons are preserved. Overlay checks validate substantive fields, five four-option questions per item, and 240 distinct encouragement messages. |
+| Local persistence | Rust tests cover legacy SQLite data, backup and restore, evidence retention, and invalid archives. |
+| Frontend | Lint, type checking, production build, 12 unit tests, and seven Chromium tests passed. The browser suite exercised true Back navigation, independent same-day progress, a future start, quizzes, offline report export and final milestone badges. |
+| PDF | A locally produced PDF was parsed successfully by pdftotext. |
+| Published platform tests | Recorded after the release workflow completes. |
+| Official sources | All ten vendor or project landing pages returned HTTP 200. This link check does not install the external tools. |

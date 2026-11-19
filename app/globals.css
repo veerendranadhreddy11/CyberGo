@@ -122,3 +122,10 @@ select{appearance:none;padding-right:32px;background-image:linear-gradient(45deg
 @media (prefers-reduced-motion: reduce) { .completion { animation:none; } }
 .nex-mode.art-soc { --accent:#7bcbff; }
 .nex-mode.art-full,.nex-hero.art-full { --accent:#bea5fc; }
+
+.full-home{margin-top:16px}.nex-mode h2{margin:.35rem 0}.nex-mode.art-pentest{--accent:#fb718f}
+.study-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;margin:1rem 0}.study-flow span{padding:.7rem;border:1px solid #405478;border-radius:.55rem;background:#141e32;line-height:1.3;color:#d0ddf5}
+.mission-body details{border:1px solid #354360;border-radius:.6rem;padding:.65rem .85rem;margin:.6rem 0}.mission-body summary{cursor:pointer}
+.celebration{border-color:#978ded;background:linear-gradient(112deg,#212146,#1a2d3c)}.celebration h2{font-size:1.5rem}
+.route-actions{display:flex;align-items:center;gap:.45rem;flex-shrink:0}.route-actions .button{padding:.35rem .6rem}
+@media(max-width:660px){.topbar .breadcrumbs{display:none}.study-flow{grid-template-columns:1fr}}

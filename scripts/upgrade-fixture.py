@@ -1,4 +1,4 @@
-"""Seed and verify synthetic learning data across an installed v1 to v2 upgrade."""
+"""Seed and verify synthetic learning data across an installed v2.0 to v2.1 upgrade."""
 import argparse
 import json
 from pathlib import Path
@@ -14,7 +14,13 @@ evidence_id = "f2ce6479-6d58-499c-af55-afdb256fc900"
 with sqlite3.connect(args.database) as db:
     version = db.execute("PRAGMA user_version").fetchone()[0]
     if args.operation == "seed":
-        assert version == 1
+        assert version == 2
+        db.execute("UPDATE full_course_state SET record_json=? WHERE id=1", [json.dumps({
+            "records": {"computers/architecture":{"checks":[0,1],"notes":"Saved Full Course work",
+                "attempts":[{"at":"2026-01-02T12:00:00Z","choice":0,"score":100}],
+                "completedAt":"2026-01-02T12:00:00Z"}},
+            "badges":{},"preferredModule":"networking"
+        })])
         db.execute('UPDATE settings SET start_day=?, display_preferences=? WHERE id=1', ('2026-01-02', '{"reduceMotion":true}'))
         db.execute("INSERT INTO mission_progress VALUES (?,?)", ('soc-1', json.dumps(payload)))
         db.execute("INSERT INTO mission_progress VALUES (?,?)", ('pentest-1', json.dumps(pentest)))
@@ -28,5 +34,8 @@ with sqlite3.connect(args.database) as db:
         assert json.loads(db.execute("SELECT record_json FROM mission_progress WHERE mission_id='pentest-1'").fetchone()[0]) == pentest
         assert db.execute("SELECT name FROM evidence WHERE id=?", (evidence_id,)).fetchone()[0] == 'upgrade.txt'
         assert (args.database.parent/'evidence'/evidence_id).read_bytes() == b'Synthetic upgrade evidence'
-        assert json.loads(db.execute("SELECT record_json FROM full_course_state WHERE id=1").fetchone()[0]) == {'records': {}, 'badges': {}}
+        course = json.loads(db.execute("SELECT record_json FROM full_course_state WHERE id=1").fetchone()[0])
+        assert course["preferredModule"] == "networking"
+        assert course["records"]["computers/architecture"]["notes"] == "Saved Full Course work"
+        assert course["records"]["computers/architecture"]["attempts"][0]["score"] == 100
         print('Verified prior date, notes, checklist, minutes, preference and evidence after installation.')

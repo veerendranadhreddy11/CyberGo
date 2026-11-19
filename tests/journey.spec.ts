@@ -52,10 +52,10 @@ test("desktop journey saves independently across refresh, accepts evidence and a
   await expect(page.getByText("Journey start date saved.")).toBeVisible();
   await page.getByRole("link", { name: "120-Day Crash Course", exact: true }).click();
   await page.getByRole("link", { name: "Mission Calendar", exact: true }).click();
-  await expect(page.getByText(/Archived schedule/)).toBeVisible();
+  await expect(page.getByText(/Actual completion dates/)).toBeVisible();
   await page.getByLabel("Phase").selectOption("0");
-  await expect(page.getByRole("link", { name: /Day 01.*Completed/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Day 02.*Pending/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Mission 01.*Completed/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Mission 02.*Ready to start/ })).toBeVisible();
   expect(problems).toEqual([]);
 });
 

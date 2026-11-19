@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Activity, BookOpen, CalendarDays, ChevronRight, CircleHelp, LayoutDashboard, Menu, Settings2, ShieldCheck, StickyNote, Trophy, X } from "lucide-react";
+import { ArrowLeft, House, Activity, BookOpen, CalendarDays, ChevronRight, CircleHelp, LayoutDashboard, Menu, Settings2, ShieldCheck, StickyNote, Trophy, X } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
-import { parisDay, displayDay, journeyDay } from "../lib/dates";
+import { parisDay, displayDay } from "../lib/dates";
 import { freshProgress } from "../lib/progress";
 import { desktop, errorText, native, readCourse, readProgress, readReducedMotion, writeCourse, writeProgress, writeReducedMotion } from "../lib/desktop";
 import { Welcome } from "./welcome";
@@ -13,7 +13,8 @@ import { Dashboard, Analytics } from "./dashboard";
 import { CalendarView } from "./calendar";
 import { TrackView } from "./track";
 import { Settings } from "./settings";
-import { pad } from "./shared";
+import { CompletionReport } from "./report";
+import { missionCount } from "../lib/journey";
 import { applyBadges, emptyCourse, emptyLesson, lessons, milestones, type CourseRecord, type CourseState } from "../lib/course";
 import { Achievements, CrashNav, FullCourse, Home, LearningStats, LessonView, Notes } from "./course";
 
@@ -41,6 +42,7 @@ export function Workspace() {
   const restoring = useRef(false);
   const [today, setToday] = useState("");
   const [where, setWhere] = useState<string[]>([""]);
+  const historyDepth = useRef(0);
   const [warning, setWarning] = useState("");
   const [mobile, setMobile] = useState(false);
   const menuToggle = useRef<HTMLButtonElement>(null);
@@ -48,7 +50,14 @@ export function Workspace() {
 
   useEffect(() => {
     const syncDate = () => setToday(parisDay());
-    const syncRoute = () => { setWhere(route()); setMobile(false); window.scrollTo(0, 0); };
+    historyDepth.current = Number(history.state?.nexDepth ?? 0);
+    history.replaceState({...history.state,nexDepth:historyDepth.current},"");
+    const syncRoute = () => {
+      const depth = history.state?.nexDepth;
+      historyDepth.current = typeof depth === "number" ? depth : historyDepth.current + 1;
+      if(typeof depth !== "number") history.replaceState({...history.state,nexDepth:historyDepth.current},"");
+      setWhere(route()); setMobile(false); window.scrollTo(0, 0);
+    };
     let active = true;
     void Promise.all([readProgress(), readCourse(), readReducedMotion()]).then(async ([saved, course, reduceMotion]) => {
       const earned = applyBadges(course, saved);
@@ -147,7 +156,24 @@ export function Workspace() {
 
   const [page, selection, lessonId, focus] = where;
   const lesson = page === "lesson" && [...lessons, ...milestones.lessons].find(item => item.id === `${selection}/${lessonId}`);
-  const current = journeyDay(data.start, today);
+  function back() {
+    if(historyDepth.current>0) {history.back(); return;}
+    if((page==="soc"||page==="pentest")&&lessonId) location.hash=`#/${page}/${selection}`;
+    else if((page==="soc"||page==="pentest")&&selection) location.hash=`#/${page}`;
+    else if(page==="lesson") location.hash=selection==="milestones"?"#/assessments":`#/module/${selection}`;
+    else if(page==="module") location.hash="#/modules";
+    else location.hash="#/";
+  }
+  useEffect(()=>{
+    const shortcut=(event:KeyboardEvent)=>{
+      if (!((event.altKey&&event.key==="ArrowLeft")||(event.metaKey&&event.key==="["))) return;
+      event.preventDefault();
+      document.querySelector<HTMLButtonElement>("[data-nex-back]")?.click();
+    };
+    window.addEventListener("keydown",shortcut);
+    return ()=>window.removeEventListener("keydown",shortcut);
+  },[]);
+  const combined = missionCount(data,"soc")+missionCount(data,"pentest");
   const track: Track | undefined = page === "soc" || page === "pentest" ? page : undefined;
   const navPage = crashPages.includes(page) || (lesson && selection === "milestones") ? "crash" : fullPages.includes(page) || lesson ? "course" : page;
   const title = navigation.flatMap(group => group.links).find(link => link.id === navPage)?.title ?? "Home";
@@ -157,7 +183,7 @@ export function Workspace() {
     {native() && <button className="button subtle" onClick={() => void desktop.openFolder().catch(error => setWarning(errorText(error)))}>Open data folder</button>}
   </div> : "Loading your workspace…"}</div>;
   else if (!data.start && crashPages.includes(page) && page !== "assessments") content = <><CrashNav/><Welcome today={today} update={update} /></>;
-  else if (track) content = <><CrashNav/><TrackView key={track} track={track} selection={selection} data={data} today={today} update={update} /></>;
+  else if (track) content = <><CrashNav/><TrackView key={track} track={track} selection={selection} focus={lessonId} data={data} today={today} update={update} course={course} saveQuiz={(id,attempt)=>updateLesson(id,record=>({...record,attempts:[...record.attempts.slice(-99),attempt]}))} /></>;
   else if (page === "calendar") content = <><CrashNav/><CalendarView data={data} today={today} /></>;
   else if (page === "activity") content = <><CrashNav/><h1>Crash Course Learning History</h1><Analytics data={data} today={today} /></>;
   else if (page === "crash") content = <><CrashNav/><Dashboard data={data} today={today} /></>;
@@ -168,6 +194,7 @@ export function Workspace() {
     void enqueue(() => writeCourse(next));
   }} />;
   else if (lesson) content = <LessonView key={lesson.id} lesson={lesson} state={course} update={updateLesson} focus={focus} />;
+  else if (page === "report") content = <CompletionReport crash={data} course={course} today={today} track={selection==="soc"||selection==="pentest"?selection:undefined}/>;
   else if (page === "progress") content = <LearningStats state={course} crash={data} today={today} />;
   else if (page === "achievements") content = <Achievements state={course} crash={data} />;
   else if (page === "notes") content = <Notes state={course} crash={data} />;
@@ -187,7 +214,7 @@ export function Workspace() {
     await writeReducedMotion(enabled);
     setReducedMotion(enabled);
   }} />;
-  else content = <Home crash={data} state={course} />;
+  else content = <Home crash={data} state={course} today={today}/>;
   return <div className={`shell nex-shell ${reducedMotion ? "is-reduced" : ""}`}>
     <a href="#main-content" className="skip" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>Skip to content</a>
     {mobile && <button className="scrim" aria-label="Close navigation" onClick={closeMenu} />}
@@ -204,14 +231,15 @@ export function Workspace() {
         </div>)}
       </nav>
       <div className="sidebar-bottom">
-        <a href="#/settings" className="journey-block"><span><span className="journey-icon"><Activity size={15} /></span> 120-day journey</span><strong>{!data.start ? "Not started" : current > 120 ? "Archive" : current < 1 ? "Upcoming" : `Day ${pad(current)} / 120`}</strong><span className="mini-meter"><i style={{ width: `${data.start ? Math.max(0, Math.min(current, 120)) / 120 * 100 : 0}%` }} /></span>{!data.start && <small>Choose a start date</small>}</a>
+        <a href="#/progress" className="journey-block"><span><span className="journey-icon"><Activity size={15} /></span> Crash Course</span><strong>{combined} / 240</strong><span className="mini-meter"><i style={{width:`${combined/240*100}%`}} /></span>{!data.start&&<small>Choose a start date</small>}</a>
         <a href="#/settings" className="local-label"><CircleHelp size={15} /> Progress stored locally</a>
       </div>
     </aside>
     <div className="workspace">
       <header className="topbar">
         <button className="menu-toggle icon-button" ref={menuToggle} aria-label="Open navigation" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu size={22} /></button>
-        <div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{track ? trackInfo[track].name : title}</strong></div>
+        {page && <div className="route-actions"><button data-nex-back className="button subtle" type="button" onClick={back}><ArrowLeft size={15}/>Back</button><a className="button subtle" href="#/"><House size={15}/>Home</a></div>}
+        <div className="breadcrumbs"><span>Home</span><ChevronRight size={14} /><strong>{track ? trackInfo[track].name : title}{track && selection && /^\d+$/.test(selection)?` · Mission ${selection}`:""}</strong></div>
         <time dateTime={today || undefined}><CalendarDays size={16} />{today ? displayDay(today, { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "Europe/Paris"}</time>
       </header>
       <main className="main" id="main-content" tabIndex={-1}>

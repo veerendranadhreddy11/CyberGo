@@ -82,39 +82,18 @@ struct CourseRecord {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct QuizAttempt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    question: Option<usize>,
     choice: usize,
     score: u8,
     at: String,
 }
 
-fn quiz_catalog() -> &'static BTreeMap<String, (usize, usize)> {
-    static QUIZZES: OnceLock<BTreeMap<String, (usize, usize)>> = OnceLock::new();
+fn quiz_catalog() -> &'static BTreeMap<String, Vec<(usize, usize)>> {
+    static QUIZZES: OnceLock<BTreeMap<String, Vec<(usize, usize)>>> = OnceLock::new();
     QUIZZES.get_or_init(|| {
-        #[derive(Deserialize)]
-        struct Module {
-            lessons: Vec<Lesson>,
-        }
-        #[derive(Deserialize)]
-        struct Lesson {
-            id: String,
-            question: Question,
-        }
-        #[derive(Deserialize)]
-        struct Question {
-            choices: Vec<String>,
-            correct: usize,
-        }
-        serde_json::from_str::<Vec<Module>>(include_str!("../../curriculum/full.json"))
-            .expect("bundled course")
-            .into_iter()
-            .flat_map(|module| module.lessons)
-            .map(|lesson| {
-                (
-                    lesson.id,
-                    (lesson.question.correct, lesson.question.choices.len()),
-                )
-            })
-            .collect()
+        serde_json::from_str(include_str!("../../curriculum/course-answers.json"))
+            .expect("bundled quiz answers")
     })
 }
 
@@ -131,7 +110,7 @@ impl CourseState {
         }
         let valid_date = |value: &str| DateTime::parse_from_rfc3339(value).is_ok();
         for (id, record) in &self.records {
-            let (correct, choices) = *quiz
+            let questions = quiz
                 .get(id)
                 .ok_or(Error::Invalid("Unknown course lesson."))?;
             let unique: HashSet<_> = record.checks.iter().collect();
@@ -140,9 +119,13 @@ impl CourseState {
                 || record.notes.encode_utf16().count() > 20_000
                 || record.attempts.len() > 100
                 || record.attempts.iter().any(|attempt| {
-                    attempt.choice >= choices
-                        || attempt.score != if attempt.choice == correct { 100 } else { 0 }
-                        || !valid_date(&attempt.at)
+                    questions.get(attempt.question.unwrap_or(0)).is_none_or(
+                        |&(correct, choices)| {
+                            attempt.choice >= choices
+                                || attempt.score != if attempt.choice == correct { 100 } else { 0 }
+                                || !valid_date(&attempt.at)
+                        },
+                    )
                 })
                 || record
                     .completed_at
@@ -154,8 +137,26 @@ impl CourseState {
         }
         if self.badges.iter().any(|(id, at)| {
             ![
-                "first", "streak", "thirty", "soc", "pentest", "module", "network", "linux",
+                "first",
+                "streak",
+                "thirty",
+                "soc",
+                "pentest",
+                "module",
+                "network",
+                "linux",
                 "course",
+                "soc-10",
+                "soc-30",
+                "soc-60",
+                "soc-90",
+                "soc-120",
+                "pentest-10",
+                "pentest-30",
+                "pentest-60",
+                "pentest-90",
+                "pentest-120",
+                "dual",
             ]
             .contains(&id.as_str())
                 || !valid_date(at)
@@ -563,7 +564,7 @@ impl Store {
         let old: Vec<_> = self
             .evidence(None)?
             .into_iter()
-            .filter(|item| restore_course || !quiz_catalog().contains_key(&item.mission))
+            .filter(|item| restore_course || catalog().contains_key(&item.mission))
             .collect();
         let mut staged = Vec::new();
         let result = (|| {

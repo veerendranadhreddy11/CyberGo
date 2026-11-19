@@ -10,10 +10,10 @@ CyberNex is a free cybersecurity learning app for Windows and macOS. It packages
 
 | Mode | What you can do |
 | --- | --- |
-| **120-Day Crash Course** | Set a start date and follow 120 SOC Analyst missions and 120 Penetration Testing missions, each with its own checklist, evidence, and notes. Review older missions at any time. |
+| **120-Day Crash Course** | Open SOC Analyst or Penetration Testing directly from Home. Complete 120 missions per track at your own pace, with offline evidence, guided setup, five questions, and feedback after each completion. |
 | **Full Cybersecurity Course** | Study 41 lessons across 10 modules at your own pace. Continue Learning opens the next incomplete lesson. Pick a priority module from the roadmap to change your sequence. |
 
-Take knowledge checks, work through practical assessments, and track learning activity, module progress, skill areas, and achievements. Practice assessment methods using written scope, sanitized records, and defensive review in your authorized learning environment.
+Use Back to return to your previous screen. Download a PDF learning report from My Progress. Track quiz attempts, milestones, and the Dual-Track Achievement. Practice assessment methods using written scope, sanitized records, and defensive review in your authorized learning environment.
 
 ## Screenshots
 

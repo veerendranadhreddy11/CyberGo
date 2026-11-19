@@ -30,12 +30,12 @@ function Invoke-InstalledSmoke($package, $product, $databaseVersion) {
     }
 }
 
-$oldInstaller = Join-Path $env:RUNNER_TEMP 'CyberGo-Setup-Windows-x64.exe'
-curl.exe --fail --location --retry 2 "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v1.0.0/CyberGo-Setup-Windows-x64.exe" --output $oldInstaller
-if ($LASTEXITCODE) { throw 'Could not download the original CyberGo installer' }
-Invoke-InstalledSmoke $oldInstaller CyberGo 1
+$oldInstaller = Join-Path $env:RUNNER_TEMP 'CyberNex-Setup-Windows-x64.exe'
+curl.exe --fail --location --retry 2 "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v2.0.0/CyberNex-Setup-Windows-x64.exe" --output $oldInstaller
+if ($LASTEXITCODE) { throw 'Could not download the prior CyberNex installer' }
+Invoke-InstalledSmoke $oldInstaller CyberNex 2
 python scripts/upgrade-fixture.py seed $database
 if ($LASTEXITCODE) { throw 'Could not seed the upgrade fixture' }
 Invoke-InstalledSmoke (Resolve-Path 'release/CyberNex-Setup-Windows-x64.exe') CyberNex 2
 python scripts/upgrade-fixture.py verify $database
-if ($LASTEXITCODE) { throw 'CyberGo data failed post-upgrade verification' }
+if ($LASTEXITCODE) { throw 'CyberNex data failed post-upgrade verification' }

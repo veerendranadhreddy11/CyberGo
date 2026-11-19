@@ -13,10 +13,10 @@ trap cleanup EXIT
 database="$HOME/Library/Application Support/io.github.veerendranadhreddy11.cybergo/cybergo.db"
 
 launch() {
-  local image="$1" name="$2" version="$3"
+  local image="$1" name="$2" version="$3" slot="$4"
   mkdir -p "$mountpoint"
   hdiutil attach "$image" -nobrowse -readonly -mountpoint "$mountpoint"
-  local app="$workdir/$name.app"
+  local app="$workdir/$name-$slot.app"
   ditto "$mountpoint/$name.app" "$app"
   hdiutil detach "$mountpoint"
   local binary
@@ -38,9 +38,9 @@ launch() {
   exit 1
 }
 
-old="$workdir/CyberGo-macOS-Intel.dmg"
-curl --fail --location --retry 2 "https://github.com/$GITHUB_REPOSITORY/releases/download/v1.0.0/CyberGo-macOS-Intel.dmg" --output "$old"
-launch "$old" CyberGo 1
+old="$workdir/CyberNex-macOS-Intel.dmg"
+curl --fail --location --retry 2 "https://github.com/$GITHUB_REPOSITORY/releases/download/v2.0.0/CyberNex-macOS-Intel.dmg" --output "$old"
+launch "$old" CyberNex 2 prior
 python3 scripts/upgrade-fixture.py seed "$database"
-launch "$artifact" CyberNex 2
+launch "$artifact" CyberNex 2 upgrade
 python3 scripts/upgrade-fixture.py verify "$database"

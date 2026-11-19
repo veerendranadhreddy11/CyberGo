@@ -161,6 +161,54 @@ async fn open_data_folder(app: AppHandle, state: State<'_, Desktop>) -> Reply<()
 }
 
 #[tauri::command]
+async fn open_official(app: AppHandle, url: String) -> Reply<()> {
+    let sources = [
+        "https://support.broadcom.com/",
+        "https://www.microsoft.com/software-download/windows11",
+        "https://ubuntu.com/download",
+        "https://www.kali.org/get-kali/",
+        "https://nmap.org/download.html",
+        "https://www.wireshark.org/download.html",
+        "https://documentation.wazuh.com/current/quickstart.html",
+        "https://portswigger.net/burp/communitydownload",
+        "https://www.python.org/downloads/",
+        "https://learn.microsoft.com/sysinternals/downloads/sysmon",
+    ];
+    if !sources.contains(&url.as_str()) {
+        return Err("This is not a bundled official download source.".into());
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|_| "The default browser could not be opened.".into())
+}
+
+#[tauri::command]
+async fn export_report(app: AppHandle, state: State<'_, Desktop>, bytes: Vec<u8>) -> Reply<bool> {
+    if bytes.len() > 250_000 || !bytes.starts_with(b"%PDF-1.4\n") {
+        return Err("Invalid progress report.".into());
+    }
+    let selected = app
+        .dialog()
+        .file()
+        .add_filter("PDF report", &["pdf"])
+        .set_file_name("CyberNex-progress.pdf")
+        .blocking_save_file();
+    let Some(output) = path(selected)? else {
+        return Ok(false);
+    };
+    if output
+        .extension()
+        .and_then(|value| value.to_str())
+        .is_none_or(|value| !value.eq_ignore_ascii_case("pdf"))
+    {
+        return Err("Choose a filename ending in .pdf.".into());
+    }
+    safe_destination(&state, &output)?;
+    store::export_evidence(&output, &bytes).map_err(message)?;
+    Ok(true)
+}
+
+#[tauri::command]
 async fn export_backup(app: AppHandle, state: State<'_, Desktop>) -> Reply<bool> {
     let picked = app
         .dialog()
@@ -263,6 +311,8 @@ fn main() {
             review_attachment,
             open_data_folder,
             export_backup,
+            export_report,
+            open_official,
             inspect_backup,
             restore_backup,
             cancel_backup

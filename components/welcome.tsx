@@ -17,7 +17,7 @@ export function Welcome({ today, update }: { today: Day; update: UpdateProgress 
       event.preventDefault();
       if (!confirmed || !isDay(chosen) || chosen < today) return;
       setSaving(true);
-      if (await update(current => ({ ...current, start: chosen }))) location.hash = "#/crash";
+      if (await update(current => ({ ...current, start: chosen }))) location.hash = location.hash.startsWith("#/soc") || location.hash.startsWith("#/pentest") ? location.hash : "#/crash";
       setSaving(false);
     }}>
       <label>Start date<input type="date" min={today} value={chosen} required

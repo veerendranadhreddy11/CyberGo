@@ -1,10 +1,14 @@
 "use client";
 
 import fixtures from "../curriculum/full-fixtures.json";
-import { useState } from "react";
+import { getMission, trackInfo } from "../lib/catalog";
+import { nextMission } from "../lib/journey";
+import { fullQuestions } from "../lib/teaching";
+import { KnowledgeCheck } from "./knowledge";
+import { ReportButton } from "./report";
 import { Activity, BookOpen, CheckCircle2, ChevronRight, Crosshair, FlaskConical, LockKeyhole, ShieldCheck, Trophy } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { applyBadges, badgeDescriptions, badgeNames, completeModule, completed, emptyLesson, lessonLink, lessons, milestones, modules, nextLesson, type CourseRecord, type CourseState, type Lesson } from "../lib/course";
+import { applyBadges, badgeDescriptions, badgeNames, trackBadges, completeModule, completed, emptyLesson, lessonLink, lessons, milestones, modules, nextLesson, type CourseRecord, type CourseState, type Lesson } from "../lib/course";
 import type { Progress } from "../lib/types";
 import { activity, percent, streaks } from "../lib/progress";
 import { addDays, displayDay, parisDay } from "../lib/dates";
@@ -17,22 +21,43 @@ const chapter = (id: string) => "#/module/" + id;
 const recordFor = (state: CourseState, id: string) => state.records[id] ?? emptyLesson();
 const timestampLabel = (at: string) => displayDay(parisDay(new Date(at)), { dateStyle: "long" });
 
-export function Home({ crash, state }: { crash: Progress; state: CourseState }) {
-  const crashDone = activity(crash).completed.length;
+export function Home({ crash, state, today }: { crash: Progress; state: CourseState; today: string }) {
   const fullDone = lessons.filter(lesson => completed(state, lesson)).length;
   const next = nextLesson(state);
+  const chapter = modules.find(module=>module.lessons.some(lesson=>lesson.id===next?.id));
+  const history = activity(crash);
+  const days = [...Object.keys(history.minutesByDay),...history.completed.map(item=>item.day),...Object.values(state.records).flatMap(record=>[
+    ...record.attempts.map(item=>parisDay(new Date(item.at))),...(record.completedAt?[parisDay(new Date(record.completedAt))]:[])
+  ])];
   return <>
     <section className="nex-hero art-home">
       <div className="nex-hero-copy"><h1>CyberNex</h1><p>Learn. Practice. Progress.</p></div>
     </section>
-    <div className="section-heading"><h2>Learning modes</h2></div>
     <div className="nex-modes">
-      <article className="nex-mode art-soc"><div><ShieldCheck size={26} /><h3>120-Day Crash Course</h3><p>A daily plan with separate SOC Analyst and Penetration Testing missions.</p><p>{crashDone} / 240 missions complete</p><a className="button primary" href="#/crash">Open Crash Course</a></div><Ring value={percent(crashDone,240)} /></article>
-      <article className="nex-mode art-full"><div><BookOpen size={26} /><h3>Full Cybersecurity Course</h3><p>Study modules, practical exercises, and knowledge checks at your own pace.</p><p>{fullDone} / {lessons.length} lessons complete</p><a className="button primary" href={full}>Explore Full Course</a></div><Ring value={percent(fullDone,lessons.length)} /></article>
+      {(["soc","pentest"] as const).map(track=>{
+        const stats=activity(crash,track);
+        const next=nextMission(crash,track);
+        return <article className={`nex-mode art-${track}`} key={track}>
+          <div>{track==="soc"?<ShieldCheck size={26}/>:<Crosshair size={26}/>}<p>{trackInfo[track].team}</p><h2>{trackInfo[track].name}</h2>
+          <p>{stats.completed.length} / 120 missions complete</p><p>{next?`Mission ${next.day} · ${next.title}`:"Track complete"}</p>
+          <a className="button primary" href={`#/${track}`}>{track==="soc"?"Open SOC":"Open Pentest"}</a></div><Ring value={percent(stats.completed.length,120)}/>
+        </article>;
+      })}
     </div>
-    <section className="panel nex-next">
-      <div><h2>{next ? "Continue the Full Course" : "Full Course complete"}</h2><p>{next ? next.title : "Review any completed lesson in the roadmap."}</p></div>
-      <a className="button subtle" href={next ? lessonLink(next.id) : "#/modules"}>{next ? "Continue learning" : "View modules"}</a>
+    <section className="nex-mode art-full full-home"><div><BookOpen size={25}/><h2>Full Cybersecurity Course</h2><p>Self-paced learning · {fullDone} / {lessons.length} lessons complete</p>
+      <p>{chapter?`Current module · ${chapter.title}`:"All modules complete"}</p>
+      {next&&<p>Next lesson · {next.title}</p>}
+      <div className="actions"><a className="button primary" href={next?lessonLink(next.id):"#/modules"}>{next?"Continue Learning":"Review lessons"}</a><a className="button subtle" href={full}>Explore Full Course</a></div>
+    </div><Ring value={percent(fullDone,lessons.length)}/></section>
+    <div className="nex-stat-grid"><article className="panel"><strong>{history.completed.length}</strong><span>Completed missions</span></article>
+      <article className="panel"><strong>{streaks(days,today).current}</strong><span>Learning streak · days</span></article>
+      <article className="panel"><strong>{percent(history.completed.length+fullDone,240+lessons.length)}%</strong><span>Overall learning progress</span></article>
+      <article className="panel"><strong>{fullDone}</strong><span>Completed lessons</span></article></div>
+    <section className="panel lesson-content"><h2>Recent activities</h2>
+      <ul className="plain-list">{[...history.completed.map(item=>({date:item.at,title:getMission(item.track,Number(item.id.split("-")[1])).title})),
+        ...lessons.flatMap(lesson=>state.records[lesson.id]?.completedAt?[{date:state.records[lesson.id].completedAt!,title:lesson.title}]:[])]
+        .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5).map(item=><li key={item.title}>{item.title}<span>{timestampLabel(item.date)}</span></li>)}</ul>
+      {!history.completed.length&&!fullDone&&<p>Completed missions and lessons will appear here.</p>}
     </section>
   </>;
 }
@@ -128,9 +153,7 @@ function LessonList({items,state,mode}:{items:Lesson[];state:CourseState;mode:"l
 }
 
 export function LessonView({ lesson,state,update,focus }: {lesson:Lesson;state:CourseState;update:Update;focus?:string}) {
-  const [choice,setChoice] = useState<number>();
   const record = recordFor(state,lesson.id);
-  const last = record.attempts.at(-1);
   const mod = modules.find(m => m.lessons.some(l => l.id === lesson.id));
   const following = lesson.id.startsWith("milestones/") ? milestones.lessons[milestones.lessons.indexOf(lesson)+1] : lessons[lessons.indexOf(lesson)+1];
   return <>
@@ -142,7 +165,7 @@ export function LessonView({ lesson,state,update,focus }: {lesson:Lesson;state:C
       <div className="panel lesson-content">
         <h2>Learning objective</h2><p>Explain {lesson.title.replace(/^Day \d+ · /, "").toLowerCase()} and support your explanation with evidence from the practice task.</p>
         <h2>Explanation</h2><p>{lesson.explanation}</p>
-        <h2>Technical example</h2><p>{lesson.example}</p>
+        <h2>Technical example</h2><p>{lesson.example}</p><div className="study-flow" role="img" aria-label="Concept, practice, and verification"><span>Concept</span><span>Practice</span><span>Verification</span></div>
         <h2>Practical exercise</h2><p>{lesson.exercise}</p>
         {lesson.id in fixtures && <><h2>Practice data</h2><pre>{fixtures[lesson.id as keyof typeof fixtures]}</pre></>}
         {lesson.command && <><h2>Command reference</h2><pre>{lesson.command}</pre></>}
@@ -152,18 +175,7 @@ export function LessonView({ lesson,state,update,focus }: {lesson:Lesson;state:C
         <p>{following && <a className="text-link" href={lessonLink(following.id)}>Next recommended lesson · {following.title}</a>}</p>
       </div>
       <div>
-        <section className={`panel lesson-content ${focus === "quiz" ? "quiz-focus" : ""}`}>
-          <h2>Knowledge check</h2><form onSubmit={event => {
-            event.preventDefault();
-            if (choice === undefined) return;
-            const attempt = { choice, at: new Date().toISOString(), score: choice === lesson.question.correct ? 100 : 0 };
-            update(lesson.id, previous => ({ ...previous, attempts: [...previous.attempts.slice(-99), attempt] }));
-          }}><fieldset><legend>{lesson.question.prompt}</legend>
-            {lesson.question.choices.map((answer,index) => <label className="lesson-check" key={answer}><input type="radio" name="knowledge" checked={choice===index} onChange={()=>setChoice(index)} required />{answer}</label>)}
-          </fieldset><button className="button primary" disabled={choice===undefined}>Check answer</button></form>
-          {last && <p role="status"><strong>{last.score === 100 ? "Correct" : "Review this answer"} · {last.score}%</strong><br />{lesson.question.explanation}</p>}
-          {record.attempts.length>0 && <details><summary>Attempts ({record.attempts.length})</summary><ol>{record.attempts.map((attempt,index)=><li key={index}>{timestampLabel(attempt.at)} · {attempt.score}%</li>)}</ol></details>}
-        </section>
+        <KnowledgeCheck questions={fullQuestions[lesson.id]} record={record} save={attempt=>update(lesson.id,previous=>({...previous,attempts:[...previous.attempts.slice(-99),attempt]}))}/>
         <section className={`panel lesson-content ${focus === "practice" ? "quiz-focus" : ""}`}>
           <h2>{record.completedAt ? "Lesson complete" : "Completion checklist"}</h2>
           {[["Explain the concept in my own words",0],["Finish the exercise and verify the result",1]].map(([label,id]) =>
@@ -196,7 +208,7 @@ export function LearningStats({state,crash,today}:{state:CourseState;crash:Progr
     const extra = track ? activity(crash,track).completed.length : 0;
     return {skill, value:percent(related.filter(l=>completed(state,l)).length+extra,related.length+(track?120:0))};
   });
-  return <><h1>My Progress</h1>
+  return <><div className="nex-next"><h1>My Progress</h1><ReportButton crash={crash} course={state} today={today}/></div>
     <div className="nex-stat-grid">{[[crashCompleted.length,"Crash Course missions"],[lessons.filter(l=>completed(state,l)).length,"Full Course lessons"],[streaks([...dates,...Object.keys(activity(crash).minutesByDay)],today).current,"Active streak days"]].map(([value,label])=><article className="panel" key={label}><strong>{value}</strong><span>{label}</span></article>)}</div>
     <div className="nex-modes">
       <section className="panel lesson-content"><h2>Weekly learning activity</h2><div className="nex-chart"><ResponsiveContainer><BarChart data={week}><CartesianGrid stroke="#283448"/><XAxis dataKey="day" stroke="#b6c6e2"/><YAxis allowDecimals={false} stroke="#b6c6e2"/><Tooltip contentStyle={{background:"#141e32"}}/><Bar dataKey="completions" fill="#8eaaff" isAnimationActive={false}/></BarChart></ResponsiveContainer></div></section>
@@ -208,10 +220,11 @@ export function LearningStats({state,crash,today}:{state:CourseState;crash:Progr
 
 export function Achievements({state,crash}:{state:CourseState;crash:Progress}) {
   const badges = applyBadges(state,crash).badges;
+  const entries = {...Object.fromEntries(Object.entries(badgeNames).map(([key,name])=>[key,[name,badgeDescriptions[key as keyof typeof badgeNames]]])), ...trackBadges};
   const icons = [Trophy,Activity,ShieldCheck,Crosshair,FlaskConical];
-  return <><h1>Achievements</h1><div className="nex-roadmap">{(Object.keys(badgeNames) as (keyof typeof badgeNames)[]).map((key,index)=>{
+  return <><h1>Achievements</h1><div className="nex-roadmap">{Object.entries(entries).map(([key,[name,description]],index)=>{
     const Icon = badges[key] ? icons[index % icons.length] : LockKeyhole;
-    return <article className={`panel module-card ${badges[key]?"badge-unlocked":""}`} key={key}><Icon size={25}/><h2>{badgeNames[key]}</h2><p>{badgeDescriptions[key]}</p><span>{badges[key] ? `Unlocked ${timestampLabel(badges[key])}` : "Locked"}</span></article>;
+    return <article className={`panel module-card ${badges[key]?"badge-unlocked":""}`} key={key}><Icon size={25}/><h2>{name}</h2><p>{description}</p><span>{badges[key] ? `Unlocked ${timestampLabel(badges[key])}` : "Locked"}</span></article>;
   })}</div></>;
 }
 
