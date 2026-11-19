@@ -15,7 +15,16 @@ CyberGo is a free, offline desktop companion for cybersecurity students on Windo
 
 ## Install
 
-Use the Windows x64 installer or the macOS disk image matching your processor. ZIP wrappers include the same native package and a short installation guide. When a release is published, use the repository’s **Releases** tab for downloads and checksums. See the [installation guide](docs/Installation_Guide.md) for requirements, publisher notices, and package names.
+| Platform | Native installer | ZIP |
+| --- | --- | --- |
+| Windows x64 | [Installer](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-Setup-Windows-x64.exe) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-v1.0.0-Windows-x64.zip) |
+| macOS Intel | [Installer](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-macOS-Intel.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-v1.0.0-macOS-Intel.zip) |
+
+The Apple Silicon build is undergoing package verification.
+
+[CyberGo v1.0.0 release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v1.0.0) · [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/SHA256SUMS.txt)
+
+See the [installation guide](docs/Installation_Guide.md) for requirements and signing notices.
 
 ## Progress and backups
 
