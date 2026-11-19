@@ -27,6 +27,6 @@ tempfile = "3"
 thiserror = "2"
 
 [[bin]]
-name = "cybernex"
+name = "cybergo"
 path = "src/main.rs"
 required-features = ["desktop"]
