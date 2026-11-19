@@ -1,0 +1,50 @@
+name: Cross-platform backup verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    strategy:
+      matrix:
+        include:
+          - runner: windows-2022
+            platform: windows
+          - runner: macos-15-intel
+            platform: macos
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create synthetic backup
+        env:
+          CYBERGO_PORTABLE_PRODUCE: ${{ github.workspace }}/${{ matrix.platform }}.zip
+        run: cargo +stable test --manifest-path src-tauri/Cargo.toml --locked --no-default-features --test backup_portability
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-backup
+          path: ${{ matrix.platform }}.zip
+          if-no-files-found: error
+
+  import:
+    needs: export
+    strategy:
+      matrix:
+        include:
+          - runner: windows-2022
+            source: macos
+          - runner: macos-15-intel
+            source: windows
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.source }}-backup
+          path: portability
+      - name: Restore backup from the other operating system
+        env:
+          CYBERGO_PORTABLE_CONSUME: ${{ github.workspace }}/portability/${{ matrix.source }}.zip
+        run: cargo +stable test --manifest-path src-tauri/Cargo.toml --locked --no-default-features --test backup_portability
