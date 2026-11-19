@@ -14,11 +14,10 @@
 | Native Tauri compilation check | Passed on Debian Linux with WebKitGTK using `cargo check --locked`. This check did not launch an installed application. |
 | Windows x64 installed-package smoke test | Passed on the GitHub Windows Server 2022 runner. The NSIS-installed program opened a window and created its SQLite database. |
 | Intel macOS disk-image startup | Passed on an Intel macOS 15 runner. The app copied from the mounted DMG started and created its SQLite database. |
+| Apple Silicon distribution | Cross-built on an Intel macOS runner. The mounted DMG, ARM64 executable, app signing information, and ZIP archive passed verification. Launch on Apple Silicon hardware remains unverified. |
 | Windows ↔ macOS backup transfer | Passed both directions on Windows Server 2022 and Intel macOS 15 runners using synthetic notes, preferences, and Unicode-named evidence. [Workflow result](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44499230046) |
 | Release ZIP wrapper | Verified the named files and extraction integrity for synthetic Windows and macOS package fixtures. |
 
 ## Release verification
 
-The public source repository, v1.0.0 tag, and verified Windows x64 and Intel macOS packages are live. The published ZIPs were independently downloaded and their embedded installers matched the standalone release digests. [Release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v1.0.0)
-
-The native Apple Silicon runner was unavailable. The [Apple Silicon cross-build](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44504039399) is verifying the ARM64 package before publication.
+The original release workflow verified Windows x64 and Intel macOS. Its native ARM job was canceled before a runner was assigned. The fallback workflow combined those packages with the verified Apple Silicon cross-build and published all six files plus SHA-256 checksums. [Published release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v1.0.0) · [Apple Silicon cross-build](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44504039399)

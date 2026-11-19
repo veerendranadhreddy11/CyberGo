@@ -19,3 +19,7 @@ The release pipeline targets Windows x64 NSIS and macOS DMGs for Apple Silicon a
 ## Testing and limitations
 
 See the [testing report](Testing_Report.md) for executed checks and outstanding platform tests. Windows publisher signing and Apple notarization require separate credentials. Browser evidence must be copied manually when migrating from the website. Future work could add a visual evidence gallery and an option to select the study calendar time zone.
+
+## Name check
+
+Other GitHub repositories use the name CyberGo under separate owners. This release lives under the requested `veerendranadhreddy11/CyberGo` namespace. The name check covered GitHub repository names.
