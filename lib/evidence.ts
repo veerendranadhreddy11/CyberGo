@@ -1,4 +1,4 @@
-import type { Evidence, MissionId } from "./types";
+import type { Evidence } from "./types";
 
 const connection = () => new Promise<IDBDatabase>((resolve, reject) => {
   const request = indexedDB.open("cybermission120-evidence", 1);
@@ -23,7 +23,7 @@ async function transact<T>(mode: IDBTransactionMode, operation: (store: IDBObjec
   } finally { db.close(); }
 }
 
-export const getEvidence = (mission: MissionId) =>
+export const getEvidence = (mission: string) =>
   transact<Evidence[]>("readonly", store => store.index("mission").getAll(mission));
 export const saveEvidence = (file: Evidence) => transact("readwrite", store => store.add(file));
 export const deleteEvidence = (id: string) => transact("readwrite", store => store.delete(id));

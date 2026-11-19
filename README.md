@@ -1,44 +1,44 @@
-# CyberGo
+# CyberNex
 
 **Learn. Practice. Progress.**
 
-CyberGo is a free, offline desktop companion for cybersecurity students on Windows and macOS. It brings the original CyberMission 120 dashboard and its 240 practical missions to a local application.
+CyberNex is a free cybersecurity learning app for Windows and macOS. It packages the curriculum, exercises, illustrations, quizzes, and progress tracking for offline study.
 
-- **SOC Analyst** covers telemetry, networking, SIEM, detection engineering, triage, and reporting.
-- **Penetration Testing** covers lab scope, local assessment, evidence review, secure configuration, and reporting.
-- Both tracks run for 120 days from your selected start date. Each has independent checklists, notes, completions, and study time.
-- The dashboard shows actual activity, calendar history, and streaks. Past missions stay available for review and completion.
+![CyberNex home with both learning modes](docs/screenshots/home.webp)
 
-![CyberGo dashboard](docs/dashboard.webp)
+## Two ways to learn
 
-![First-launch journey date selection](docs/welcome.webp)
+| Mode | What you can do |
+| --- | --- |
+| **120-Day Crash Course** | Set a start date and follow 120 SOC Analyst missions and 120 Penetration Testing missions, each with its own checklist, evidence, and notes. Review older missions at any time. |
+| **Full Cybersecurity Course** | Study 41 lessons across 10 modules at your own pace. Continue Learning opens the next incomplete lesson. Pick a priority module from the roadmap to change your sequence. |
+
+Take knowledge checks, work through practical assessments, and track learning activity, module progress, skill areas, and achievements. Practice assessment methods using written scope, sanitized records, and defensive review in your authorized learning environment.
+
+## Screenshots
+
+| Crash Course | Full Course |
+| --- | --- |
+| ![Crash Course mission and progress dashboard](docs/screenshots/crash-course.webp) | ![Full Course dashboard with Continue Learning and module progress](docs/screenshots/full-course.webp) |
+| ![SOC mission interface](docs/screenshots/soc.webp) | ![Pentesting mission interface](docs/screenshots/pentesting.webp) |
+| ![Full Course roadmap](docs/screenshots/roadmap.webp) |  |
 
 ## Install
 
-| Platform | Native installer | ZIP |
-| --- | --- | --- |
-| Windows x64 | [Installer](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-Setup-Windows-x64.exe) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-v1.0.0-Windows-x64.zip) |
-| macOS Apple Silicon | [Installer](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-macOS-AppleSilicon.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-v1.0.0-macOS-AppleSilicon.zip) |
-| macOS Intel | [Installer](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-macOS-Intel.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/CyberGo-v1.0.0-macOS-Intel.zip) |
-
-[CyberGo v1.0.0 release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v1.0.0) · [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v1.0.0/SHA256SUMS.txt)
-
-See the [installation guide](docs/Installation_Guide.md) for requirements and signing notices.
+Find native installers, ZIP packages with installation instructions, and SHA-256 checksums in [GitHub Releases](https://github.com/veerendranadhreddy11/CyberGo/releases). The targets are Windows 10 or 11 x64, macOS Apple Silicon, and macOS Intel. See the [installation guide](docs/Installation_Guide.md) for setup and signing details.
 
 ## Progress and backups
 
-CyberGo starts without an account. Choose and confirm the date you want to begin, then open either learning path. Mark a mission complete after satisfying its checklist. CyberGo saves local notes and records to SQLite and stores evidence separately in the per-user application data folder.
-
-Use **Settings → Export my data** for a portable ZIP of progress, settings, and evidence. To move to another computer, select the ZIP in **Import my data**, review its summary, and confirm replacement. Export JSON from CyberMission 120 and choose **Import browser JSON** to migrate earlier progress. Download older browser evidence files individually, then reattach them to their missions in CyberGo.
+Learning progress stays on the student's own computer and does not automatically synchronize between devices. Open **Settings → Export my data** for a ZIP containing both modes, quiz attempts, achievements, preferences, and evidence. Confirm replacement after reviewing the summary in **Import my data**. CyberGo users can upgrade in place. CyberNex uses the existing application data directory and can import older CyberGo ZIPs.
 
 ## Development
 
-Install Node.js 22 or later, Python 3, Rust stable, and [Tauri system prerequisites](https://v2.tauri.app/start/prerequisites/).
+Install Node.js 22 or later, stable Rust, Python 3, and the [Tauri system prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 npm ci
-npm run typecheck
 npm run lint
+npm run typecheck
 npm run validate
 npm test
 cargo test --manifest-path src-tauri/Cargo.toml --locked --no-default-features
@@ -48,10 +48,4 @@ npm run test:browser
 npm run desktop -- dev
 ```
 
-Use `npm run desktop -- build --bundles nsis` on Windows or `npm run desktop -- build --bundles dmg` on macOS. The static `out/` export is embedded in the application. Normal use requires no server or development tools.
-
-See the [architecture](docs/Architecture.md), [testing report](docs/Testing_Report.md), [development report](docs/CyberGo_Development_Report.md), and [contribution guide](CONTRIBUTING.md).
-
-## Security and licensing
-
-Run mission exercises manually in your own authorized lab. CyberGo stores evidence locally and opens it in external apps only when you ask. Backups contain your notes and files, so keep them somewhere private. CyberGo’s source and original assets are available under the [MIT License](LICENSE). Dependencies and optional lab tools retain their own licenses and are maintained separately.
+Read the [architecture](docs/Architecture.md), [curriculum](docs/Full_Course_Curriculum.md), [testing report](docs/Testing_Report.md), [development report](docs/CyberNex_Development_Report.md), and [contribution guide](CONTRIBUTING.md). CyberNex uses the [MIT License](LICENSE).

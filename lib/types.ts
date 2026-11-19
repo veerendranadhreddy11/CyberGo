@@ -37,7 +37,7 @@ export interface Progress {
 }
 export interface Evidence {
   id: string;
-  mission: MissionId;
+  mission: string;
   name: string;
   blob: Blob;
 }

@@ -2,11 +2,11 @@ import { join } from "node:path";
 import { test, expect } from "@playwright/test";
 import { addDays, parisDay } from "../lib/dates";
 
-async function start(page: import("@playwright/test").Page, path = "/") {
+async function start(page: import("@playwright/test").Page, path = "/#/crash") {
   await page.goto(path);
-  if (process.env.CYBERGO_SCREENSHOTS && page.viewportSize()?.width === 1280 && path === "/") {
-    await expect(page.getByRole("heading", { name: "Welcome to CyberGo" })).toBeVisible();
-    await page.screenshot({ path: join(process.env.CYBERGO_SCREENSHOTS, "cybergo-welcome.png"), animations: "disabled" });
+  if (process.env.CYBERNEX_SCREENSHOTS && page.viewportSize()?.width === 1280 && path === "/#/crash") {
+    await expect(page.getByRole("heading", { name: "Welcome to CyberNex" })).toBeVisible();
+    await page.screenshot({ path: join(process.env.CYBERNEX_SCREENSHOTS, "cybernex-welcome.png"), animations: "disabled" });
   }
   await page.getByRole("checkbox", { name: /Confirm/ }).check();
   await page.getByRole("button", { name: "Begin journey" }).click();
@@ -17,8 +17,8 @@ test("desktop journey saves independently across refresh, accepts evidence and a
   const problems: string[] = [];
   page.on("pageerror", error => problems.push(error.message));
   await start(page);
-  if (process.env.CYBERGO_SCREENSHOTS) {
-    await page.screenshot({ path: join(process.env.CYBERGO_SCREENSHOTS, "cybergo-dashboard.png"), animations: "disabled" });
+  if (process.env.CYBERNEX_SCREENSHOTS) {
+    await page.screenshot({ path: join(process.env.CYBERNEX_SCREENSHOTS, "cybernex-dashboard.png"), animations: "disabled" });
   }
   await page.getByRole("link", { name: "SOC Analyst", exact: true }).click();
   await expect(page.getByRole("heading", { name: /Build and Explore/ })).toBeVisible();
@@ -50,6 +50,7 @@ test("desktop journey saves independently across refresh, accepts evidence and a
   await page.getByRole("button", { name: "Save start date" }).click();
   await page.getByRole("button", { name: "Confirm date change" }).click();
   await expect(page.getByText("Journey start date saved.")).toBeVisible();
+  await page.getByRole("link", { name: "120-Day Crash Course", exact: true }).click();
   await page.getByRole("link", { name: "Mission Calendar", exact: true }).click();
   await expect(page.getByText(/Archived schedule/)).toBeVisible();
   await page.getByLabel("Phase").selectOption("0");
@@ -71,8 +72,7 @@ test("mobile navigation stays usable and invalid backups preserve notes", async 
   const exported = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export backup" }).click();
   expect((await exported).suggestedFilename()).toMatch(/\.backup\.json$/);
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("link", { name: "SOC Analyst", exact: true }).click();
+  await page.goto("/#/soc/1");
   await expect(page.getByRole("textbox", { name: "Notes save as you type" })).toHaveValue("Original note");
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("link", { name: "Settings", exact: true }).click();
@@ -80,8 +80,7 @@ test("mobile navigation stays usable and invalid backups preserve notes", async 
   await page.getByLabel("Select backup").setInputFiles({ name: "valid.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(record)) });
   await page.getByRole("button", { name: "Restore backup" }).click();
   await expect(page.getByText("Backup restored.")).toBeVisible();
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await page.getByRole("link", { name: "SOC Analyst", exact: true }).click();
+  await page.goto("/#/soc/1");
   await expect(page.getByRole("textbox", { name: "Notes save as you type" })).toHaveValue("Restored note");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
@@ -102,8 +101,8 @@ test("previously loaded production missions and notes work offline", async ({ pa
 
 test("a future start requires confirmation and survives reload", async ({ page }) => {
   const today = parisDay();
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Welcome to CyberGo" })).toBeVisible();
+  await page.goto("/#/crash");
+  await expect(page.getByRole("heading", { name: "Welcome to CyberNex" })).toBeVisible();
   await page.getByLabel("Start date").fill(addDays(today, 5));
   await expect(page.getByRole("button", { name: "Begin journey" })).toBeDisabled();
   await page.getByRole("checkbox", { name: /Confirm/ }).check();

@@ -21,7 +21,7 @@ export function TrackView({ track, selection, data, today, update }: { track: Tr
   const segment = catalog[track].slice(phase * 30, phase * 30 + 30);
   const skills = [...new Set(catalog[track].flatMap(item => item.skills))];
   return <div className={`track-page ${track}`}>
-    <div className="panel path-banner"><div><span className="team"><TrackIcon track={track} size={16} /> {info.team}</span><h1>{info.name}</h1><p>{history.completed.length} / 120 missions completed <span>·</span> {Math.round(history.minutes / 6) / 10} h studied</p></div><Ring value={percent(history.completed.length, 120)} /></div>
+    <div className={`panel path-banner art-${track}`}><div><span className="team"><TrackIcon track={track} size={16} /> {info.team}</span><h1>{info.name}</h1><p>{history.completed.length} / 120 missions completed <span>·</span> {Math.round(history.minutes / 6) / 10} h studied</p></div><Ring value={percent(history.completed.length, 120)} /></div>
     <div className="tab-strip path-tabs" aria-label="Learning path views">
       {[["mission", "Mission", FlaskConical], ["roadmap", "Roadmap", CalendarDays], ["skills", "Skills", Signal], ["history", "History", CheckCheck]].map(([key, label, Icon]) => {
         const TabIcon = Icon as typeof FlaskConical;

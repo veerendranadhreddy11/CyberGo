@@ -1,4 +1,4 @@
-# Contributing to CyberGo
+# Contributing to CyberNex
 
 Use a separate branch and keep changes scoped. Build the frontend and run the Rust storage tests before opening a pull request. Record which installed builds you actually tested.
 

@@ -3,7 +3,7 @@ self.addEventListener("install", event => {
 });
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(
-    keys.filter(name => name.startsWith("cybergo-") && name !== key).map(name => caches.delete(name))
+    keys.filter(name => (name.startsWith("cybergo-") || name.startsWith("cybernex-")) && name !== key).map(name => caches.delete(name))
   )).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", event => {

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 artifact="$1"
-mountpoint="$(mktemp -d)"
 workdir="$(mktemp -d)"
+mountpoint="$(mktemp -d)"
 pid=""
 cleanup() {
   if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; fi
@@ -10,18 +10,37 @@ cleanup() {
   rm -rf "$mountpoint" "$workdir"
 }
 trap cleanup EXIT
-hdiutil attach "$artifact" -nobrowse -readonly -mountpoint "$mountpoint"
-ditto "$mountpoint/CyberGo.app" "$workdir/CyberGo.app"
-app="$workdir/CyberGo.app"
-binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
-"$app/Contents/MacOS/$binary" >"$workdir/app.log" 2>&1 &
-pid=$!
 database="$HOME/Library/Application Support/io.github.veerendranadhreddy11.cybergo/cybergo.db"
-for (( attempt=0; attempt<60; attempt++ )); do
-  if ! kill -0 "$pid" 2>/dev/null; then cat "$workdir/app.log"; exit 1; fi
-  if [[ -s "$database" ]]; then exit 0; fi
-  sleep 1
-done
-cat "$workdir/app.log"
-echo "The macOS application did not create its SQLite database" >&2
-exit 1
+
+launch() {
+  local image="$1" name="$2" version="$3"
+  mkdir -p "$mountpoint"
+  hdiutil attach "$image" -nobrowse -readonly -mountpoint "$mountpoint"
+  local app="$workdir/$name.app"
+  ditto "$mountpoint/$name.app" "$app"
+  hdiutil detach "$mountpoint"
+  local binary
+  binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+  "$app/Contents/MacOS/$binary" >"$workdir/app.log" 2>&1 &
+  pid=$!
+  for (( attempt=0; attempt<90; attempt++ )); do
+    if ! kill -0 "$pid" 2>/dev/null; then cat "$workdir/app.log"; exit 1; fi
+    if [[ -s "$database" ]] && [[ "$(python3 -c 'import sqlite3,sys;print(sqlite3.connect(sys.argv[1]).execute("PRAGMA user_version").fetchone()[0])' "$database")" == "$version" ]]; then
+      kill "$pid"
+      wait "$pid" 2>/dev/null || true
+      pid=""
+      return
+    fi
+    sleep 1
+  done
+  cat "$workdir/app.log"
+  echo "The application did not initialize SQLite schema $version" >&2
+  exit 1
+}
+
+old="$workdir/CyberGo-macOS-Intel.dmg"
+curl --fail --location --retry 2 "https://github.com/$GITHUB_REPOSITORY/releases/download/v1.0.0/CyberGo-macOS-Intel.dmg" --output "$old"
+launch "$old" CyberGo 1
+python3 scripts/upgrade-fixture.py seed "$database"
+launch "$artifact" CyberNex 2
+python3 scripts/upgrade-fixture.py verify "$database"

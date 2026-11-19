@@ -1,0 +1,17 @@
+{
+  "networking/traffic": "12:00:00 192.0.2.10:51000 → 192.0.2.20:443 SYN\n12:00:00 192.0.2.20:443 → 192.0.2.10:51000 SYN,ACK\n12:00:01 192.0.2.10:51000 → 192.0.2.20:443 ACK\n12:00:02 192.0.2.30:51200 → 192.0.2.20:443 SYN\nCapture stops at 12:00:03.",
+  "windows/events": "09:01Z LAB-01 event=4625 account=student-demo logon_type=2\n09:04Z LAB-01 event=4624 account=student-demo logon_type=5",
+  "windows/policy": "Domain baseline: Audit Logon success and failure\nLab OU: success only\nResult for workstation: Audit Logon success only\nLocal listener: 127.0.0.1:8080 (documented local service)",
+  "foundations/access": "Analyst: read source, write case notes\nReviewer: read case notes, approve report\nCollector: append source event, no report access",
+  "foundations/vulnerability": "LAB-VM-2 | advisory DEMO-001 | powered off | training data\nEDGE-01 | advisory DEMO-001 | externally visible | critical service",
+  "soc/triage": "2026-11-19T12:01Z server-1 demo-reader failure\n2026-11-19T12:02Z server-1 demo-reader failure\n2026-11-19T12:07Z server-1 demo-reader success",
+  "soc/detections": "10:00 demo-a fail\n10:01 demo-a fail\n10:02 demo-a fail\n10:03 demo-a fail\n10:04 demo-a fail\n10:06 demo-a success\n10:09 [missing identity] fail",
+  "assessment/inventory": "Archived observation · isolated classroom fixture\n443/tcp open https\n22/tcp filtered ssh\n80/tcp closed http\nService versions: not recorded",
+  "assessment/web": "Request (archived): GET /account/summary HTTP/1.1\nHost: demo.invalid\nAuthorization: [redacted]\n\nResponse A: HTTP 200 · account=synthetic-01\nResponse B: HTTP 200 · account=synthetic-02\nBoth authorization identities were redacted.",
+  "python/json": "{\"source_ip\":\"192.0.2.5\",\"status\":\"allow\"}\n{\"status\":\"deny\"}\n{broken",
+  "python/automation": "{\"event_id\":\"sample-1\",\"status\":\"deny\"}\n{\"event_id\":\"sample-1\",\"status\":\"deny\"}\n{\"event_id\":\"sample-2\",\"status\":\"allow\"}\n{\"event_id\":\"sample-3\",\"status\":null}",
+  "advanced/cloud": "storage=synthetic-training | policy=public-read | logs=off\nidentity=report-reader | role=storage-admin | approved=read-only\ncompute=lesson-worker | logging=enabled",
+  "advanced/containers": "image: training/demo:latest\nprivileged: true\nhost mount: runtime control socket\nroot filesystem: read-write",
+  "advanced/intelligence": "192.0.2.15 | recorded 18 months ago | low confidence | no recent internal hit\n198.51.100.21 | recorded today | moderate confidence | one recent synthetic log match",
+  "projects/investigation": "11:59Z LAB-01 scheduled job starts\n12:00Z LAB-01 authentication accepted\n12:00Z LAB-01 outbound connection to 192.0.2.14\n12:01Z packet capture sees TCP handshake to 192.0.2.14\n12:03Z capture ends\n12:04Z LAB-01 job reports success"
+}

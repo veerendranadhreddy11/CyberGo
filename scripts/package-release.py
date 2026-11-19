@@ -1,4 +1,4 @@
-"""Wrap one native CyberGo package and verify the ZIP payload."""
+"""Wrap one native CyberNex package and verify the ZIP payload."""
 
 import argparse
 import shutil
@@ -6,9 +6,9 @@ import zipfile
 from pathlib import Path
 
 PLATFORMS = {
-    "Windows-x64": ("x86_64-pc-windows-msvc", "nsis", "*-setup.exe", "CyberGo-Setup-Windows-x64.exe"),
-    "macOS-AppleSilicon": ("aarch64-apple-darwin", "dmg", "*.dmg", "CyberGo-macOS-AppleSilicon.dmg"),
-    "macOS-Intel": ("x86_64-apple-darwin", "dmg", "*.dmg", "CyberGo-macOS-Intel.dmg"),
+    "Windows-x64": ("x86_64-pc-windows-msvc", "nsis", "*-setup.exe", "CyberNex-Setup-Windows-x64.exe"),
+    "macOS-AppleSilicon": ("aarch64-apple-darwin", "dmg", "*.dmg", "CyberNex-macOS-AppleSilicon.dmg"),
+    "macOS-Intel": ("x86_64-apple-darwin", "dmg", "*.dmg", "CyberNex-macOS-Intel.dmg"),
 }
 
 parser = argparse.ArgumentParser()
@@ -25,7 +25,7 @@ release = Path("release")
 release.mkdir(exist_ok=True)
 package = release / installer
 shutil.copyfile(files[0], package)
-archive = release / f"CyberGo-v{args.version}-{args.platform}.zip"
+archive = release / f"CyberNex-v{args.version}-{args.platform}.zip"
 with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as z:
     z.write(package, package.name)
     z.write("docs/Installation_Guide.md", "INSTALL.md")

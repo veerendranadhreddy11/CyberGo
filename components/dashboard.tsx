@@ -15,11 +15,11 @@ export function Dashboard({ data, today }: { data: Progress; today: Day }) {
   const streak = streaks([...study], today);
   const done = record.completed.length;
   return <>
-    <section className="hero">
+    <section className="hero crash-hero">
       <div className="hero-content">
         <span className="hero-kicker"><span /> CYBERSECURITY TRAINING</span>
         <h1>Mission Control</h1>
-        <p>Learn. Practice. Progress.</p>
+        <p>120-Day Crash Course{data.start && ` · Started ${displayDay(data.start, { dateStyle:"long" })}`}</p>
         {data.start && current < 1 && <p>Your journey starts on {displayDay(data.start, { dateStyle: "long" })} · {distance(today, data.start)} {distance(today, data.start) === 1 ? "day" : "days"} to go.</p>}
         <div className="hero-actions"><a className="button primary" href="#/calendar"><CalendarDays size={16} /> View mission calendar</a>{!data.start && <a className="button subtle" href="#/settings">Set start date</a>}</div>
       </div>

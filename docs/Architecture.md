@@ -1,21 +1,19 @@
-# CyberGo architecture
+# CyberNex architecture
 
-CyberGo packages the existing Next.js static export inside a Tauri 2 window. React and TypeScript provide the dashboard, track views, calendar, analytics, and Settings. CSS, charts, images, and the complete curriculum are bundled. The only application IPC calls concern local progress, preferences, evidence, backup, and file dialogs. The installed app uses Rust-backed storage. The standalone frontend preview uses browser storage for development and browser regression tests.
+The Tauri 2 desktop shell embeds a static Next.js export. React and TypeScript provide the interface, Recharts renders local activity and skills graphics, and Motion handles lightweight page transitions. The frontend, catalog, images, and quizzes are packaged in the application and available offline.
 
-## Local storage
+## Two learning modes
 
-Tauri resolves the application-data directory using the identifier `io.github.veerendranadhreddy11.cybergo`. The app creates `cybergo.db` and `evidence/` under that directory. This normally means a directory under `%APPDATA%` on Windows or `~/Library/Application Support/` on macOS. SQLite uses WAL and FULL synchronization. The schema migrates under a versioned transaction.
+The Crash Course uses the original `soc-N` and `pentest-N` mission IDs. Its date controls only the 120-day schedule. The Full Course uses stable `module/lesson` IDs with a separate record per lesson or optional assessment. Continue Learning chooses the first incomplete lesson in the selected priority module, then follows the standard progression.
 
-| Table | Purpose |
-| --- | --- |
-| `settings` | Journey start date and display preferences |
-| `mission_progress` | One validated record per mission ID, containing checklist, notes, study duration, study date, and completion timestamp |
-| `evidence` | Attachment IDs, mission IDs, and validated display names |
+## SQLite migration and backup
 
-Skill statistics, streaks, percentages, and charts are derived from those records. Dates use the existing Europe/Paris study calendar. Date arithmetic uses calendar-day differences independent of daylight-saving changes or a change to the OS time zone.
+Tauri retains the application identifier `io.github.veerendranadhreddy11.cybergo`. The original `cybergo.db` and `evidence/` remain in the per-user app data directory. Schema migration 002 creates the separate `full_course_state` table in an immediate transaction. Mission progress, scheduling, preferences, and evidence records continue to use their original tables.
 
-## Evidence and backups
+The new table stores checks, notes, completion timestamps, quiz attempts and scores, badge history, and the optional priority module. Charts derive from saved completion and activity dates. The skills radar measures curriculum progress.
 
-Rust accepts an allowlisted evidence type at up to 20 MB, checks its basic content signature, and saves it under a UUID. Native dialogs choose import and export paths. Backup export writes a versioned manifest and attachments into one ZIP. Import validates every entry and its content before showing a summary. It reads exact entry names and never extracts archive paths. Restore stages newly named files before replacing records and references in one SQLite transaction. Old references remain valid if the transaction fails. A process interruption can leave an unreferenced file on disk. The database does not reference that file.
+ZIP format 2 contains both modes, preferences, and evidence. Format 1 CyberGo ZIPs restore their original records while keeping current Full Course learning records and lesson evidence. Evidence attachments are validated, stored under local UUIDs, and copied into verified ZIPs without extracting arbitrary paths. Restore stages files and commits references transactionally. The older browser JSON importer restores the Crash Course only.
 
-The single-instance desktop plugin prevents one CyberGo profile from being edited by two application processes. IPC has no shell command or arbitrary file read interface. The installed frontend has no cloud account or telemetry dependency.
+## Offline security
+
+Tauri exposes narrow commands for progress, preferences, native user-selected files, and validated backups. The application never executes course commands. Evidence stays in the application data directory. PNG-derived WebP backgrounds and platform icons ship locally. The optional standalone browser preview stores its development state in browser storage.

@@ -1,23 +1,12 @@
-# CyberGo testing report
-
-## Checks run
+# CyberNex testing report
 
 | Check | Result |
 | --- | --- |
-| Frontend lint and TypeScript type check | Passed |
-| Curriculum validation | Passed for 120 SOC and 120 Pentesting missions. The mission files are unchanged from CyberMission 120. |
-| Frontend unit tests | Seven passed. Coverage includes daylight saving, calendar boundaries, streaks, checklist rules, and browser JSON validation. |
-| Rust storage tests | Four passed. Coverage includes SQLite creation and reopening, track independence, rejected progress, evidence validation, ZIP round-trip, and unsafe archive rejection. |
-| Static production build | Passed |
-| Chromium browser tests | Four passed. Coverage includes start confirmation, reload, offline notes, archive navigation, evidence, and legacy JSON restore. The browser tests use the standalone preview adapter. |
-| GitHub Actions workflow lint | Passed |
-| Native Tauri compilation check | Passed on Debian Linux with WebKitGTK using `cargo check --locked`. This check did not launch an installed application. |
-| Windows x64 installed-package smoke test | Passed on the GitHub Windows Server 2022 runner. The NSIS-installed program opened a window and created its SQLite database. |
-| Intel macOS disk-image startup | Passed on an Intel macOS 15 runner. The app copied from the mounted DMG started and created its SQLite database. |
-| Apple Silicon distribution | Cross-built on an Intel macOS runner. The mounted DMG, ARM64 executable, app signing information, and ZIP archive passed verification. Launch on Apple Silicon hardware remains unverified. |
-| Windows ↔ macOS backup transfer | Passed both directions on Windows Server 2022 and Intel macOS 15 runners using synthetic notes, preferences, and Unicode-named evidence. [Workflow result](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44499230046) |
-| Release ZIP wrapper | Verified the named files and extraction integrity for synthetic Windows and macOS package fixtures. |
-
-## Release verification
-
-The original release workflow verified Windows x64 and Intel macOS. Its native ARM job was canceled before a runner was assigned. The fallback workflow combined those packages with the verified Apple Silicon cross-build and published all six files plus SHA-256 checksums. [Published release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v1.0.0) · [Apple Silicon cross-build](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44504039399)
+| Original curriculum | 120 SOC and 120 Pentesting missions validated. Existing catalog files match the prior release. |
+| Full Course | 41 lessons across ten modules and four optional Crash Course assessments validated. |
+| Frontend checks | Lint, TypeScript, nine unit tests, and the production build passed. |
+| Native storage tests | Six Rust unit tests and the backup portability test harness passed locally. |
+| SQLite upgrade | A synthetic v1 database upgraded with its date, checklist, notes, and time intact. |
+| Backup and evidence | Version 2 round-trip, legacy import preserving Full Course data, and unsafe ZIP rejection passed. |
+| Offline local frontend | Five Chromium tests passed for both modes, saved quizzes, notes, priority module, completion, date handling, and offline artwork. |
+| Native installers | See the release workflow for installed v1-to-v2 migration on Windows and Intel Mac and cross-build verification on Apple Silicon. |

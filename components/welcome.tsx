@@ -11,13 +11,13 @@ export function Welcome({ today, update }: { today: Day; update: UpdateProgress 
   const [saving, setSaving] = useState(false);
   const chosen = date ?? today;
   return <section className="panel settings-panel welcome-panel">
-    <h1>Welcome to CyberGo</h1>
+    <h1>Welcome to CyberNex</h1>
     <p>Choose when you want to begin your 120-day cybersecurity journey.</p>
     <form onSubmit={async event => {
       event.preventDefault();
       if (!confirmed || !isDay(chosen) || chosen < today) return;
       setSaving(true);
-      if (await update(current => ({ ...current, start: chosen }))) location.hash = "#/";
+      if (await update(current => ({ ...current, start: chosen }))) location.hash = "#/crash";
       setSaving(false);
     }}>
       <label>Start date<input type="date" min={today} value={chosen} required

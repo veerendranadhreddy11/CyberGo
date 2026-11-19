@@ -1,7 +1,7 @@
 {
-  "name": "cybergo",
-  "version": "1.0.0",
-  "description": "Offline SOC and Pentesting learning workspace for Windows and macOS",
+  "name": "cybernex",
+  "version": "2.0.0",
+  "description": "Offline cybersecurity training with structured and self-paced courses",
   "scripts": {
     "test": "tsx --test tests/*.test.ts",
     "dev": "node scripts/dev.mjs",

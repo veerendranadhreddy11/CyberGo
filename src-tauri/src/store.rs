@@ -22,11 +22,11 @@ const MAX_FILES: usize = 1000;
 pub enum Error {
     #[error("The data file could not be accessed. Check available space and permissions.")]
     Io(#[from] std::io::Error),
-    #[error("CyberGo could not read or write its SQLite data. Close other instances and retry.")]
+    #[error("CyberNex could not read or write its SQLite data. Close other instances and retry.")]
     Db(#[from] rusqlite::Error),
     #[error("The backup or progress data is invalid.")]
     Json(#[from] serde_json::Error),
-    #[error("The selected backup is not a readable CyberGo ZIP.")]
+    #[error("The selected backup is not a readable CyberNex ZIP.")]
     Zip(#[from] zip::result::ZipError),
     #[error("{0}")]
     Invalid(&'static str),
@@ -61,12 +61,119 @@ pub struct Evidence {
     pub name: String,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CourseState {
+    records: BTreeMap<String, CourseRecord>,
+    badges: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    preferred_module: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CourseRecord {
+    checks: Vec<u8>,
+    notes: String,
+    attempts: Vec<QuizAttempt>,
+    completed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QuizAttempt {
+    choice: usize,
+    score: u8,
+    at: String,
+}
+
+fn quiz_catalog() -> &'static BTreeMap<String, (usize, usize)> {
+    static QUIZZES: OnceLock<BTreeMap<String, (usize, usize)>> = OnceLock::new();
+    QUIZZES.get_or_init(|| {
+        #[derive(Deserialize)]
+        struct Module {
+            lessons: Vec<Lesson>,
+        }
+        #[derive(Deserialize)]
+        struct Lesson {
+            id: String,
+            question: Question,
+        }
+        #[derive(Deserialize)]
+        struct Question {
+            choices: Vec<String>,
+            correct: usize,
+        }
+        serde_json::from_str::<Vec<Module>>(include_str!("../../curriculum/full.json"))
+            .expect("bundled course")
+            .into_iter()
+            .flat_map(|module| module.lessons)
+            .map(|lesson| {
+                (
+                    lesson.id,
+                    (lesson.question.correct, lesson.question.choices.len()),
+                )
+            })
+            .collect()
+    })
+}
+
+impl CourseState {
+    fn validate(&self) -> Result<()> {
+        let quiz = quiz_catalog();
+        if self.preferred_module.as_ref().is_some_and(|id| {
+            id == "milestones"
+                || !quiz
+                    .keys()
+                    .any(|key| key.split_once('/').is_some_and(|(module, _)| module == id))
+        }) {
+            return Err(Error::Invalid("Invalid preferred course module."));
+        }
+        let valid_date = |value: &str| DateTime::parse_from_rfc3339(value).is_ok();
+        for (id, record) in &self.records {
+            let (correct, choices) = *quiz
+                .get(id)
+                .ok_or(Error::Invalid("Unknown course lesson."))?;
+            let unique: HashSet<_> = record.checks.iter().collect();
+            if unique.len() != record.checks.len()
+                || record.checks.iter().any(|check| *check > 1)
+                || record.notes.encode_utf16().count() > 20_000
+                || record.attempts.len() > 100
+                || record.attempts.iter().any(|attempt| {
+                    attempt.choice >= choices
+                        || attempt.score != if attempt.choice == correct { 100 } else { 0 }
+                        || !valid_date(&attempt.at)
+                })
+                || record
+                    .completed_at
+                    .as_deref()
+                    .is_some_and(|at| unique.len() != 2 || !valid_date(at))
+            {
+                return Err(Error::Invalid("Invalid course progress."));
+            }
+        }
+        if self.badges.iter().any(|(id, at)| {
+            ![
+                "first", "streak", "thirty", "soc", "pentest", "module", "network", "linux",
+                "course",
+            ]
+            .contains(&id.as_str())
+                || !valid_date(at)
+        }) {
+            return Err(Error::Invalid("Invalid achievement history."));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Manifest {
     format: String,
     version: u8,
     progress: Progress,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    course: Option<CourseState>,
     preferences: BTreeMap<String, bool>,
     evidence: Vec<Evidence>,
 }
@@ -81,6 +188,7 @@ pub struct Summary {
     pub start: Option<String>,
     pub missions: usize,
     pub attachments: usize,
+    pub lessons: usize,
 }
 
 pub struct Store {
@@ -240,17 +348,40 @@ impl Store {
         match version {
             0 => {
                 transaction.execute_batch(include_str!("../migrations/001_initial.sql"))?;
-                transaction.pragma_update(None, "user_version", 1)?;
             }
-            1 => {}
+            1 | 2 => {}
             _ => {
                 return Err(Error::Invalid(
-                    "This data was created by a newer version of CyberGo.",
+                    "This data was created by a newer version of CyberNex.",
                 ))
             }
         }
+        if version < 2 {
+            transaction.execute_batch(include_str!("../migrations/002_course.sql"))?;
+            transaction.pragma_update(None, "user_version", 2)?;
+        }
         transaction.commit()?;
         Ok(Self { db, root })
+    }
+
+    pub fn course(&self) -> Result<CourseState> {
+        let raw: String = self.db.query_row(
+            "SELECT record_json FROM full_course_state WHERE id=1",
+            [],
+            |row| row.get(0),
+        )?;
+        let state: CourseState = serde_json::from_str(&raw)?;
+        state.validate()?;
+        Ok(state)
+    }
+
+    pub fn save_course(&mut self, course: &CourseState) -> Result<()> {
+        course.validate()?;
+        self.db.execute(
+            "UPDATE full_course_state SET record_json=? WHERE id=1",
+            [serde_json::to_string(course)?],
+        )?;
+        Ok(())
     }
 
     pub fn progress(&self) -> Result<Progress> {
@@ -337,7 +468,7 @@ impl Store {
     }
 
     pub fn add(&mut self, mission: String, name: String, bytes: &[u8]) -> Result<Evidence> {
-        if !catalog().contains_key(&mission) {
+        if !catalog().contains_key(&mission) && !quiz_catalog().contains_key(&mission) {
             return Err(Error::Invalid("Unknown mission."));
         }
         validate_file(&name, bytes)?;
@@ -385,9 +516,10 @@ impl Store {
             |row| row.get::<_, String>(0),
         )?;
         let manifest = Manifest {
-            format: "CyberGo".into(),
-            version: 1,
+            format: "CyberNex".into(),
+            version: 2,
             progress: self.progress()?,
+            course: Some(self.course()?),
             preferences: serde_json::from_str(&preferences)?,
             evidence,
         };
@@ -427,7 +559,12 @@ impl Store {
     }
 
     pub fn restore(&mut self, backup: Backup) -> Result<Progress> {
-        let old = self.evidence(None)?;
+        let restore_course = backup.manifest.course.is_some();
+        let old: Vec<_> = self
+            .evidence(None)?
+            .into_iter()
+            .filter(|item| restore_course || !quiz_catalog().contains_key(&item.mission))
+            .collect();
         let mut staged = Vec::new();
         let result = (|| {
             let mut references = Vec::new();
@@ -440,11 +577,19 @@ impl Store {
             }
             let transaction = self.db.transaction()?;
             Self::write_progress(&transaction, &backup.manifest.progress)?;
+            if let Some(course) = backup.manifest.course {
+                transaction.execute(
+                    "UPDATE full_course_state SET record_json=? WHERE id=1",
+                    [serde_json::to_string(&course)?],
+                )?;
+            }
             transaction.execute(
                 "UPDATE settings SET display_preferences=? WHERE id=1",
                 [serde_json::to_string(&backup.manifest.preferences)?],
             )?;
-            transaction.execute("DELETE FROM evidence", [])?;
+            for file in &old {
+                transaction.execute("DELETE FROM evidence WHERE id=?", [&file.id])?;
+            }
             for file in references {
                 transaction.execute(
                     "INSERT INTO evidence VALUES (?, ?, ?)",
@@ -501,9 +646,14 @@ impl Backup {
         }
         let manifest_bytes = read_limited(archive.by_name("manifest.json")?, MAX_MANIFEST)?;
         let manifest: Manifest = serde_json::from_slice(&manifest_bytes)?;
-        if manifest.format != "CyberGo"
-            || manifest.version != 1
-            || archive.len() != manifest.evidence.len() + 1
+        if !matches!(
+            (
+                manifest.format.as_str(),
+                manifest.version,
+                manifest.course.is_some()
+            ),
+            ("CyberGo", 1, false) | ("CyberNex", 2, true)
+        ) || archive.len() != manifest.evidence.len() + 1
             || manifest.preferences.len() > 32
         {
             return Err(Error::Invalid(
@@ -511,13 +661,17 @@ impl Backup {
             ));
         }
         manifest.progress.validate()?;
+        if let Some(course) = &manifest.course {
+            course.validate()?;
+        }
         let mut files = Vec::new();
         let mut total = manifest_bytes.len() as u64;
         let mut ids = HashSet::new();
         for file in &manifest.evidence {
             if !Uuid::parse_str(&file.id).is_ok_and(|uuid| uuid.to_string() == file.id)
                 || !ids.insert(&file.id)
-                || !catalog().contains_key(&file.mission)
+                || !(catalog().contains_key(&file.mission)
+                    || (manifest.course.is_some() && quiz_catalog().contains_key(&file.mission)))
             {
                 return Err(Error::Invalid("Invalid evidence metadata."));
             }
@@ -542,6 +696,11 @@ impl Backup {
             start: self.manifest.progress.start.clone(),
             missions: self.manifest.progress.missions.len(),
             attachments: self.files.len(),
+            lessons: self
+                .manifest
+                .course
+                .as_ref()
+                .map_or(0, |course| course.records.len()),
         }
     }
 }
@@ -660,6 +819,7 @@ mod tests {
             format: "CyberGo".into(),
             version: 1,
             progress: fixture(),
+            course: None,
             preferences: BTreeMap::new(),
             evidence: vec![],
         };
@@ -677,5 +837,112 @@ mod tests {
         assert!(Backup::open(&zip).is_err());
         fs::write(&zip, b"this is not a zip file").unwrap();
         assert!(Backup::open(&zip).is_err());
+    }
+}
+
+#[cfg(test)]
+mod course_tests {
+    use super::*;
+
+    fn course() -> CourseState {
+        serde_json::from_value(serde_json::json!({
+            "records": {
+                "computers/architecture": { "checks": [0, 1], "notes": "Course notes",
+                    "attempts": [{"at":"2026-11-19T10:00:00Z", "choice":0, "score":100}], "completedAt":"2026-11-19T10:30:00Z" }
+            },
+            "badges": {"module":"2026-11-19T10:30:00Z"}
+        })).unwrap()
+    }
+
+    #[test]
+    fn v1_database_upgrades_without_rewriting_existing_rows() {
+        let directory = tempfile::tempdir().unwrap();
+        let file = directory.path().join("cybergo.db");
+        let db = Connection::open(&file).unwrap();
+        db.execute_batch(include_str!("../migrations/001_initial.sql"))
+            .unwrap();
+        db.pragma_update(None, "user_version", 1).unwrap();
+        db.execute("UPDATE settings SET start_day=? WHERE id=1", ["2026-11-19"])
+            .unwrap();
+        db.execute(
+            "INSERT INTO mission_progress VALUES (?,?)",
+            ["soc-1", r#"{"checks":[0],"notes":"v1 note","minutes":5}"#],
+        )
+        .unwrap();
+        drop(db);
+        let mut upgraded = Store::open(directory.path().to_path_buf()).unwrap();
+        assert_eq!(
+            upgraded.progress().unwrap().start.as_deref(),
+            Some("2026-11-19")
+        );
+        assert_eq!(
+            upgraded.progress().unwrap().missions["soc-1"].notes,
+            "v1 note"
+        );
+        assert!(upgraded.course().unwrap().records.is_empty());
+        upgraded.save_course(&course()).unwrap();
+        drop(upgraded);
+        let reopened = Store::open(directory.path().to_path_buf()).unwrap();
+        assert_eq!(
+            reopened.progress().unwrap().missions["soc-1"].notes,
+            "v1 note"
+        );
+        assert_eq!(
+            reopened.course().unwrap().records["computers/architecture"].notes,
+            "Course notes"
+        );
+    }
+
+    #[test]
+    fn v2_backup_round_trips_course_and_legacy_restore_keeps_it() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut first = Store::open(directory.path().join("first")).unwrap();
+        let mut second = Store::open(directory.path().join("second")).unwrap();
+        first.save_course(&course()).unwrap();
+        first
+            .add(
+                "computers/architecture".into(),
+                "course.txt".into(),
+                b"synthetic",
+            )
+            .unwrap();
+        let path = directory.path().join("modern.zip");
+        first.export(&path).unwrap();
+        second.restore(Backup::open(&path).unwrap()).unwrap();
+        assert_eq!(second.course().unwrap().badges.len(), 1);
+        assert_eq!(
+            second.course().unwrap().records["computers/architecture"].attempts[0].score,
+            100
+        );
+        let evidence = second.evidence(Some("computers/architecture")).unwrap();
+        assert_eq!(evidence.len(), 1);
+        let legacy = directory.path().join("legacy.zip");
+        let mut writer = ZipWriter::new(File::create(&legacy).unwrap());
+        writer
+            .start_file("manifest.json", SimpleFileOptions::default())
+            .unwrap();
+        writer.write_all(br#"{"format":"CyberGo","version":1,"progress":{"version":1,"start":"2025-01-02","missions":{}},"preferences":{},"evidence":[]}"#).unwrap();
+        writer.finish().unwrap();
+        second.restore(Backup::open(&legacy).unwrap()).unwrap();
+        assert_eq!(
+            second.progress().unwrap().start.as_deref(),
+            Some("2025-01-02")
+        );
+        assert_eq!(second.course().unwrap().records.len(), 1);
+        assert_eq!(
+            second
+                .evidence(Some("computers/architecture"))
+                .unwrap()
+                .len(),
+            1
+        );
+        let mut invalid = course();
+        invalid
+            .records
+            .get_mut("computers/architecture")
+            .unwrap()
+            .attempts[0]
+            .score = 1;
+        assert!(second.save_course(&invalid).is_err());
     }
 }

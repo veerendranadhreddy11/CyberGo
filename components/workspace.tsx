@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Activity, CalendarDays, ChevronRight, CircleHelp, Crosshair, LayoutDashboard, Menu, Settings2, ShieldCheck, X } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, ChevronRight, CircleHelp, LayoutDashboard, Menu, Settings2, ShieldCheck, StickyNote, Trophy, X } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
 import { parisDay, displayDay, journeyDay } from "../lib/dates";
 import { freshProgress } from "../lib/progress";
-import { desktop, errorText, native, readProgress, readReducedMotion, writeProgress, writeReducedMotion } from "../lib/desktop";
+import { desktop, errorText, native, readCourse, readProgress, readReducedMotion, writeCourse, writeProgress, writeReducedMotion } from "../lib/desktop";
 import { Welcome } from "./welcome";
 import Image from "next/image";
 import type { Progress, Track } from "../lib/types";
@@ -14,16 +14,24 @@ import { CalendarView } from "./calendar";
 import { TrackView } from "./track";
 import { Settings } from "./settings";
 import { pad } from "./shared";
+import { applyBadges, emptyCourse, emptyLesson, lessons, milestones, type CourseRecord, type CourseState } from "../lib/course";
+import { Achievements, CrashNav, FullCourse, Home, LearningStats, LessonView, Notes } from "./course";
 
 const navigation = [
-  { title: "WORKSPACE", links: [{ id: "", title: "Dashboard", icon: LayoutDashboard }, { id: "calendar", title: "Mission Calendar", icon: CalendarDays }, { id: "activity", title: "Activity & Analytics", icon: Activity }] },
-  { title: "LEARNING PATHS", links: [{ id: "soc", title: "SOC Analyst", icon: ShieldCheck }, { id: "pentest", title: "Penetration Testing", icon: Crosshair }] },
-  { title: "PREFERENCES", links: [{ id: "settings", title: "Settings", icon: Settings2 }] }
+  { title: "WORKSPACE", links: [{ id: "", title: "Home", icon: LayoutDashboard },
+    { id: "crash", title: "120-Day Crash Course", icon: ShieldCheck }, { id: "course", title: "Full Cybersecurity Course", icon: BookOpen },
+    { id: "progress", title: "My Progress", icon: Activity }, { id: "achievements", title: "Achievements", icon: Trophy },
+    { id: "notes", title: "Notes", icon: StickyNote }, { id: "settings", title: "Settings", icon: Settings2 }] },
 ];
+const fullPages = ["course", "modules", "module", "labs", "quizzes", "history"];
+const crashPages = ["crash", "soc", "pentest", "calendar", "activity", "assessments"];
 const route = () => window.location.hash.replace(/^#\/?/, "").split("/");
 
 export function Workspace() {
   const [data, setData] = useState<Progress>(freshProgress);
+  const [course, setCourse] = useState<CourseState>(emptyCourse);
+  const currentCourse = useRef(course);
+  const retrySave = useRef<() => void>(() => undefined);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
@@ -42,9 +50,15 @@ export function Workspace() {
     const syncDate = () => setToday(parisDay());
     const syncRoute = () => { setWhere(route()); setMobile(false); window.scrollTo(0, 0); };
     let active = true;
-    void Promise.all([readProgress(), readReducedMotion()]).then(([saved, reduceMotion]) => {
-      if (active) { currentProgress.current = saved; setData(saved); setReducedMotion(reduceMotion); setLoaded(true); }
-    }, error => { if (active) setWarning(errorText(error)); });
+    void Promise.all([readProgress(), readCourse(), readReducedMotion()]).then(async ([saved, course, reduceMotion]) => {
+      const earned = applyBadges(course, saved);
+      if (earned !== course) await writeCourse(earned);
+      if (active) {
+        currentProgress.current = saved; setData(saved);
+        currentCourse.current = earned; setCourse(earned);
+        setReducedMotion(reduceMotion); setLoaded(true);
+      }
+    }).catch(error => { if (active) setWarning(errorText(error)); });
     syncDate();
     syncRoute();
     const timer = setInterval(syncDate, 15_000);
@@ -79,17 +93,18 @@ export function Workspace() {
     setData(next);
   }
 
-  function update(change: (current: Progress) => Progress) {
-    if (restoring.current) return Promise.resolve(false);
+  function replaceCourse(value: CourseState) {
+    currentCourse.current = value;
+    setCourse(value);
+  }
+
+  function enqueue(operation: () => Promise<void>) {
     const revision = ++sequence.current;
-    const next = change(currentProgress.current);
-    const firstStart = !data.start && !!next.start;
-    if (!firstStart) replaceProgress(next);
     setSaveStatus("Saving…");
+    retrySave.current = () => { void enqueue(operation); };
     const save = writes.current.then(async () => {
       try {
-        await writeProgress(next);
-        if (firstStart) replaceProgress(next);
+        await operation();
         if (sequence.current === revision) {
           setWarning("");
           setSaveStatus("Saved locally");
@@ -107,48 +122,89 @@ export function Workspace() {
     return save;
   }
 
-  const [page, selection] = where;
+  function update(change: (previous: Progress) => Progress) {
+    if (restoring.current) return Promise.resolve(false);
+    const next = change(currentProgress.current);
+    const firstStart = !data.start && !!next.start;
+    if (!firstStart) replaceProgress(next);
+    const priorCourse = currentCourse.current;
+    const earned = applyBadges(priorCourse, next);
+    if (earned !== priorCourse) replaceCourse(earned);
+    return enqueue(async () => {
+      await writeProgress(next);
+      if (earned !== priorCourse) await writeCourse(earned);
+      if (firstStart) replaceProgress(next);
+    });
+  }
+
+  function updateLesson(id: string, change: (previous: CourseRecord) => CourseRecord) {
+    if (restoring.current) return;
+    const prior = currentCourse.current;
+    const next = applyBadges({ ...prior, records: { ...prior.records, [id]: change(prior.records[id] ?? emptyLesson()) } }, currentProgress.current);
+    replaceCourse(next);
+    void enqueue(() => writeCourse(next));
+  }
+
+  const [page, selection, lessonId, focus] = where;
+  const lesson = page === "lesson" && [...lessons, ...milestones.lessons].find(item => item.id === `${selection}/${lessonId}`);
   const current = journeyDay(data.start, today);
   const track: Track | undefined = page === "soc" || page === "pentest" ? page : undefined;
-  const title = navigation.flatMap(group => group.links).find(link => link.id === page)?.title ?? "Dashboard";
+  const navPage = crashPages.includes(page) || (lesson && selection === "milestones") ? "crash" : fullPages.includes(page) || lesson ? "course" : page;
+  const title = navigation.flatMap(group => group.links).find(link => link.id === navPage)?.title ?? "Home";
   let content: ReactNode;
   if (!today || !loaded) content = <div className="panel loading">{warning ? <div className="actions">
     <button className="button subtle" onClick={() => location.reload()}>Retry opening local data</button>
     {native() && <button className="button subtle" onClick={() => void desktop.openFolder().catch(error => setWarning(errorText(error)))}>Open data folder</button>}
   </div> : "Loading your workspace…"}</div>;
-  else if (!data.start && page !== "settings") content = <Welcome today={today} update={update} />;
-  else if (track) content = <TrackView key={track} track={track} selection={selection} data={data} today={today} update={update} />;
-  else if (page === "calendar") content = <CalendarView data={data} today={today} />;
-  else if (page === "activity") content = <><h1>Activity &amp; Analytics</h1><Analytics data={data} today={today} /></>;
+  else if (!data.start && crashPages.includes(page) && page !== "assessments") content = <><CrashNav/><Welcome today={today} update={update} /></>;
+  else if (track) content = <><CrashNav/><TrackView key={track} track={track} selection={selection} data={data} today={today} update={update} /></>;
+  else if (page === "calendar") content = <><CrashNav/><CalendarView data={data} today={today} /></>;
+  else if (page === "activity") content = <><CrashNav/><h1>Crash Course Learning History</h1><Analytics data={data} today={today} /></>;
+  else if (page === "crash") content = <><CrashNav/><Dashboard data={data} today={today} /></>;
+  else if (fullPages.includes(page) || page === "assessments") content = <FullCourse state={course} page={page} selection={selection} chooseModule={id => {
+    if (restoring.current) return;
+    const next = {...currentCourse.current, preferredModule:id};
+    replaceCourse(next);
+    void enqueue(() => writeCourse(next));
+  }} />;
+  else if (lesson) content = <LessonView key={lesson.id} lesson={lesson} state={course} update={updateLesson} focus={focus} />;
+  else if (page === "progress") content = <LearningStats state={course} crash={data} today={today} />;
+  else if (page === "achievements") content = <Achievements state={course} crash={data} />;
+  else if (page === "notes") content = <Notes state={course} crash={data} />;
   else if (page === "settings") content = <Settings data={data} today={today} update={update} restoreBackup={async token => {
     restoring.current = true;
     try {
       if (!await writes.current) throw new Error("Retry saving before restoring.");
-      replaceProgress(await desktop.restore(token));
+      const restored = await desktop.restore(token);
+      const restoredCourse = await readCourse();
+      const earned = applyBadges(restoredCourse, restored);
+      replaceProgress(restored);
+      replaceCourse(earned);
+      if (earned !== restoredCourse) await writeCourse(earned);
       setReducedMotion(await readReducedMotion());
     } finally { restoring.current = false; }
   }} flush={() => writes.current} reducedMotion={reducedMotion} saveMotion={async enabled => {
     await writeReducedMotion(enabled);
     setReducedMotion(enabled);
   }} />;
-  else content = <Dashboard data={data} today={today} />;
-  return <div className="shell">
+  else content = <Home crash={data} state={course} />;
+  return <div className={`shell nex-shell ${reducedMotion ? "is-reduced" : ""}`}>
     <a href="#main-content" className="skip" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>Skip to content</a>
     {mobile && <button className="scrim" aria-label="Close navigation" onClick={closeMenu} />}
     <aside className={mobile ? "sidebar open" : "sidebar"}>
-      <a className="brand" href="#/" aria-label="CyberGo dashboard">
-        <Image className="cybergo-brand-icon" src="/icon.png" width={42} height={42} alt="" unoptimized />
-        <span>Cyber<span className="brand-number">Go</span><small>SECURITY LEARNING</small></span>
+      <a className="brand" href="#/" aria-label="CyberNex Home">
+        <Image className="cybernex-brand-icon" src="/icon.png" width={42} height={42} alt="" unoptimized />
+        <span>Cyber<span className="brand-number">Nex</span><small>SECURITY LEARNING</small></span>
       </a>
       <button className="mobile-close icon-button" ref={closeNavigation} aria-label="Close navigation" onClick={closeMenu}><X size={20} /></button>
       <nav aria-label="Main navigation">
         {navigation.map(group => <div className="nav-group" key={group.title}>
           <p>{group.title}</p>{group.links.map(({ id, title, icon: Icon }) =>
-            <a key={id} className={`nav-link ${id === page ? "selected" : ""} ${id}`} href={`#/${id}`} aria-current={id === page ? "page" : undefined}><Icon size={18} /><span>{title}</span></a>)}
+            <a key={id} className={`nav-link ${id === navPage ? "selected" : ""} ${id}`} href={`#/${id}`} aria-current={id === navPage ? "page" : undefined}><Icon size={18} /><span>{title}</span></a>)}
         </div>)}
       </nav>
       <div className="sidebar-bottom">
-        <a href="#/settings" className="journey-block"><span><span className="journey-icon"><Activity size={15} /></span> 120-day journey</span><strong>{data.start && current > 120 ? "Archive" : data.start && current < 1 ? "Upcoming" : `Day ${pad(Math.max(0, current))} / 120`}</strong><span className="mini-meter"><i style={{ width: `${data.start ? Math.max(0, Math.min(current, 120)) / 120 * 100 : 0}%` }} /></span>{!data.start && <small>Choose a start date</small>}</a>
+        <a href="#/settings" className="journey-block"><span><span className="journey-icon"><Activity size={15} /></span> 120-day journey</span><strong>{!data.start ? "Not started" : current > 120 ? "Archive" : current < 1 ? "Upcoming" : `Day ${pad(current)} / 120`}</strong><span className="mini-meter"><i style={{ width: `${data.start ? Math.max(0, Math.min(current, 120)) / 120 * 100 : 0}%` }} /></span>{!data.start && <small>Choose a start date</small>}</a>
         <a href="#/settings" className="local-label"><CircleHelp size={15} /> Progress stored locally</a>
       </div>
     </aside>
@@ -159,7 +215,7 @@ export function Workspace() {
         <time dateTime={today || undefined}><CalendarDays size={16} />{today ? displayDay(today, { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "Europe/Paris"}</time>
       </header>
       <main className="main" id="main-content" tabIndex={-1}>
-        {warning && <div role="alert" className="notice">{warning} {loaded && <button className="button subtle" onClick={() => void update(progress => progress)}>Retry save</button>}</div>}
+        {warning && <div role="alert" className="notice">{warning} {loaded && <button className="button subtle" onClick={() => retrySave.current()}>Retry save</button>}</div>}
         <div role="status" className="save-state">{saveStatus}</div>
         <MotionConfig reducedMotion={reducedMotion ? "always" : "user"}>
           <motion.div key={page} initial={reducedMotion ? false : { opacity: .84, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>{content}</motion.div>

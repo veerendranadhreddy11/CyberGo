@@ -67,7 +67,7 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
     </section>
     <section className="panel settings-panel">
       <div className="chart-head"><h2>Backup and restore</h2><HardDrive size={22} /></div>
-      <p>CyberGo saves your learning progress locally on this computer. Your data does not automatically synchronize between devices. Export a backup if you want to move your progress to another computer.</p>
+      <p>CyberNex saves your learning progress locally on this computer. Your data does not automatically synchronize between devices. Export a backup if you want to move your progress to another computer.</p>
       {installed && <p>Keep a copy of your backup somewhere you can access if you lose this computer. ZIP backups include records and evidence attachments.</p>}
       <div className="actions">
         <button className="button primary" disabled={busy} onClick={() => void run(async () => {
@@ -75,7 +75,7 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
           if (installed) {
             if (await desktop.exportBackup()) setMessage("Backup exported.");
           } else {
-            download(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `cybergo-${today}.backup.json`);
+            download(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `cybernex-${today}.backup.json`);
           }
         })}><Download size={17} /> {installed ? "Export my data" : "Export backup"}</button>
         {installed && <>
@@ -93,9 +93,9 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
       </div>
       {pending && <div className="notice">
         <p>{pending.kind === "zip"
-          ? `Restore ${pending.data.summary.missions} mission records and ${pending.data.summary.attachments} attachments. Start date: ${pending.data.summary.start ?? "unset"}.`
+          ? `Restore ${pending.data.summary.missions} mission records, ${pending.data.summary.lessons} lesson or assessment records, and ${pending.data.summary.attachments} attachments. Start date: ${pending.data.summary.start ?? "unset"}.`
           : `Restore ${Object.keys(pending.data.missions).length} mission records from a browser backup. Existing evidence stays attached to its mission.`}</p>
-        <p>Restoring replaces current progress. Export a backup first if you want to keep a copy.</p>
+        <p>Restoring replaces records included in the selected backup. Export your current data first if you want to keep a copy.</p>
         <div className="actions">
           <button className="button primary" disabled={busy} onClick={() => void run(async () => {
             if (!await flush()) throw new Error("Retry saving your progress before restoring.");
@@ -114,12 +114,12 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
     <section className="panel settings-panel">
       <h2>Appearance</h2>
       <label className="motion-setting"><input type="checkbox" disabled={busy} checked={reducedMotion}
-        onChange={event => { const checked = event.currentTarget.checked; void run(async () => { await saveMotion(checked); }); }} /> Reduce interface motion</label>
+        onChange={event => { const checked = event.currentTarget.checked; void run(async () => { await saveMotion(checked); }); }} /> Reduce Animations</label>
     </section>
     <section className="panel settings-panel">
-      <h2>About CyberGo</h2>
-      <p>Version 1.0.0 · Learn. Practice. Progress.</p>
-      <p>Two offline learning paths with 120 missions each. Practice in your own authorized lab and use CyberGo to record what you learn.</p>
+      <h2>About CyberNex</h2>
+      <p>Version 2.0.0 · Learn. Practice. Progress.</p>
+      <p>Choose a 120-day Crash Course or study the Full Cybersecurity Course at your own pace. Practice in your own authorized lab and use CyberNex to record what you learn.</p>
     </section>
   </>;
 }

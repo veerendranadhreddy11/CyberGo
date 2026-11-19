@@ -1,4 +1,4 @@
-name: CyberGo desktop builds
+name: CyberNex desktop builds
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             bundle: nsis
             platform: Windows-x64
-          - runner: macos-15
+          - runner: macos-15-intel
             target: aarch64-apple-darwin
             bundle: dmg
             platform: macOS-AppleSilicon
@@ -64,11 +64,14 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-windows.ps1
       - name: Test application from macOS disk image
-        if: runner.os == 'macOS'
-        run: bash scripts/smoke-macos.sh "release/CyberGo-${{ matrix.platform }}.dmg"
+        if: matrix.platform == 'macOS-Intel'
+        run: bash scripts/smoke-macos.sh "release/CyberNex-${{ matrix.platform }}.dmg"
+      - name: Verify Apple Silicon disk image, architecture and signing
+        if: matrix.platform == 'macOS-AppleSilicon'
+        run: bash scripts/verify-macos-arm.sh "release/CyberNex-macOS-AppleSilicon.dmg"
       - uses: actions/upload-artifact@v4
         with:
-          name: CyberGo-${{ matrix.platform }}
+          name: CyberNex-${{ matrix.platform }}
           path: release/*
           if-no-files-found: error
 
@@ -82,7 +85,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          pattern: CyberGo-*
+          pattern: CyberNex-*
           merge-multiple: true
           path: release
       - name: Generate and verify SHA-256 checksums
@@ -95,5 +98,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "CyberGo $GITHUB_REF_NAME" --notes-file "docs/Release_Notes_$GITHUB_REF_NAME.md"
+          gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "CyberNex $GITHUB_REF_NAME" --notes-file "docs/Release_Notes_$GITHUB_REF_NAME.md"
           gh release view "$GITHUB_REF_NAME" --json url,assets

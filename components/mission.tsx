@@ -28,7 +28,7 @@ export function MissionDetail({ mission, data, today, current, update }: { missi
       {mission.sample && <section><div className="chart-head"><h3>Practice artifact</h3><button className="icon-button" aria-label="Copy practice artifact" onClick={() => void copy(mission.sample!, "Artifact")}><Clipboard size={17} /></button></div><pre>{mission.sample}</pre><button className="button subtle" onClick={() => download(new Blob([mission.sample!, "\n"], { type: "text/plain" }), "records.txt")}><Download size={16} /> Download artifact</button></section>}
       <section><div className="chart-head"><h3>Command reference</h3><button className="icon-button" aria-label="Copy command" onClick={() => void copy(mission.command, "Command")}><Clipboard size={17} /></button></div><pre>{mission.command}</pre><p role="status" className="small muted">{copied}</p></section>
       <section><h3>Expected results</h3><p>{mission.expected}</p><h3>Troubleshooting</h3><p>{mission.troubleshoot}</p><h3>Evidence to collect</h3><p>{mission.evidence}</p></section>
-      {native() ? <DesktopEvidence mission={mission} /> : <EvidencePanel mission={mission} />}
+      <EvidenceAttachments id={mission.id} />
     </article>
     <div className="mission-aside">
       <section className="panel checklist"><div className="chart-head"><h3>Completion checklist</h3><Status value={status(entry, mission.day, current)} /></div><div className="check-progress"><span>{entry.checks.length} / {mission.checklist.length} requirements</span><strong>{progress}%</strong></div><Meter value={progress} label="Checklist progress" />
@@ -47,20 +47,24 @@ export function MissionDetail({ mission, data, today, current, update }: { missi
   </div>;
 }
 
-function EvidencePanel({ mission }: { mission: Mission }) {
+export function EvidenceAttachments({ id }: { id: string }) {
+  return native() ? <DesktopEvidence key={id} id={id} /> : <EvidencePanel key={id} id={id} />;
+}
+
+function EvidencePanel({ id }: { id: string }) {
   const [files, setFiles] = useState<Evidence[]>();
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
-    getEvidence(mission.id).then(value => { if (active) setFiles(value); }, () => { if (active) setError("This browser could not open evidence storage."); });
+    getEvidence(id).then(value => { if (active) setFiles(value); }, () => { if (active) setError("This browser could not open evidence storage."); });
     return () => { active = false; };
-  }, [mission.id]);
+  }, [id]);
   async function attach(uploads: File[]) {
     setError("");
     for (const file of uploads) {
       if (file.size > 20 * 1024 * 1024) { setError(`${file.name} exceeds the 20 MB file limit.`); continue; }
       try {
-        const evidence = { id: crypto.randomUUID(), mission: mission.id, name: file.name, blob: file };
+        const evidence = { id: crypto.randomUUID(), mission: id, name: file.name, blob: file };
         await saveEvidence(evidence);
         setFiles(existing => [...(existing ?? []), evidence]);
       } catch { setError(`Unable to store ${file.name}. Check available browser storage.`); }
@@ -77,16 +81,16 @@ function EvidencePanel({ mission }: { mission: Mission }) {
   </section>;
 }
 
-function DesktopEvidence({ mission }: { mission: Mission }) {
+function DesktopEvidence({ id }: { id: string }) {
   const [files, setFiles] = useState<NativeEvidence[]>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
-    void desktop.evidence(mission.id).then(value => { if (active) setFiles(value); },
+    void desktop.evidence(id).then(value => { if (active) setFiles(value); },
       cause => { if (active) setError(errorText(cause)); });
     return () => { active = false; };
-  }, [mission.id]);
+  }, [id]);
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -96,8 +100,8 @@ function DesktopEvidence({ mission }: { mission: Mission }) {
   }
   return <section>
     <div className="chart-head"><h3>Mission evidence</h3><button className="button subtle" disabled={busy}
-      onClick={() => void run(async () => setFiles(await desktop.attach(mission.id)))}><Paperclip size={16} /> Attach file</button></div>
-    <p className="muted small">Files are stored on this computer and included in CyberGo ZIP backups.</p>
+      onClick={() => void run(async () => setFiles(await desktop.attach(id)))}><Paperclip size={16} /> Attach file</button></div>
+    <p className="muted small">Files are stored on this computer and included in CyberNex ZIP backups.</p>
     {error && <p role="alert">{error}</p>}
     {files && (files.length ? <ul className="plain-list evidence-list">{files.map(file => <li key={file.id}>
       <span><FileText size={16} /> {file.name}</span>
@@ -108,7 +112,7 @@ function DesktopEvidence({ mission }: { mission: Mission }) {
         <button className="icon-button" disabled={busy} aria-label={`Remove ${file.name}`} onClick={() => {
           if (window.confirm(`Remove ${file.name} from this mission?`)) void run(async () => {
             await desktop.delete(file.id);
-            setFiles(await desktop.evidence(mission.id));
+            setFiles(await desktop.evidence(id));
           });
         }}><Trash2 size={17} /></button>
       </div>

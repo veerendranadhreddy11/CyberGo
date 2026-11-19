@@ -1,22 +1,17 @@
-# Installing CyberGo 1.0.0
+# Installing CyberNex 2.0
 
-## Windows 10 or 11, x64
+Download the package matching your system from [GitHub Releases](https://github.com/veerendranadhreddy11/CyberGo/releases). The publisher provides a native installer or disk image, a ZIP containing the same package and this guide, and SHA-256 checksums.
 
-1. Download `CyberGo-v1.0.0-Windows-x64.zip` from the repository’s Releases tab when available.
-2. Extract the ZIP and run `CyberGo-Setup-Windows-x64.exe`.
-3. Complete the current-user setup and open **CyberGo** from Start. If offered, select the desktop shortcut option. You may also create a desktop shortcut from the installed Start entry.
-4. Choose and confirm your journey date.
+## Windows 10 or 11 x64
 
-The installer is configured to carry the offline Microsoft Edge WebView2 runtime installer for systems that need it. Windows may show a publisher or SmartScreen warning for an unsigned build. Follow your device’s security policy and verify the checksum.
+Extract the ZIP if needed, then open `CyberNex-Setup-Windows-x64.exe`. Complete the installer and open **CyberNex** from Start. The installer is unsigned, so Windows may show a publisher or SmartScreen notice. Follow your device's security policy.
 
 ## macOS 11 or later
 
-1. Choose the Apple Silicon or Intel ZIP for your Mac and extract it.
-2. Open the corresponding DMG and drag **CyberGo** into **Applications**.
-3. Launch CyberGo and choose your start date.
+Pick the Apple Silicon or Intel disk image for your Mac. Open it and drag **CyberNex** into **Applications**. The Mac builds use ad hoc signatures and lack Apple Developer ID notarization. Gatekeeper policy may limit installation or launch.
 
-The pipeline is configured for ad hoc macOS signing. It does not provide Apple Developer ID signing or notarization. Gatekeeper or managed-device policy may prevent launch. Use an approved signed and notarized build if your policy requires one.
+## Upgrade from CyberGo
 
-## Local files and updates
+Install CyberNex in the same OS user profile and close CyberGo before opening CyberNex. On first launch, CyberNex adds its Full Course table to the existing data directory. The application identifier, mission IDs, notes, dates, preferences, and evidence remain compatible. Back up data before upgrading. CyberGo v1 cannot open a schema upgraded by CyberNex.
 
-Use **Settings → Open data folder** to locate the per-user SQLite database and evidence. CyberGo installs separately from these files. Export a ZIP backup before updating or uninstalling, and keep a copy away from the computer. You can restore it on another supported computer. The restore replaces that installation’s current records and evidence.
+In CyberNex, **Settings → Open data folder** opens your SQLite and evidence folder. Use **Export my data** to make a portable ZIP. A CyberGo ZIP or browser progress JSON restores old Crash Course data while keeping your current Full Course learning. A CyberNex ZIP can restore both modes.

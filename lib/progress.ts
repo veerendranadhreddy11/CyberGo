@@ -24,7 +24,7 @@ export function status(entry: MissionProgress | undefined, day: number, currentD
 export function parseBackup(text: string): Progress {
   const raw = JSON.parse(text);
   if (!raw || raw.version !== 1 || !(raw.start === null || isDay(raw.start)) ||
-      !raw.missions || typeof raw.missions !== "object" || Array.isArray(raw.missions)) throw new Error("Choose a valid CyberGo or CyberMission 120 JSON backup.");
+      !raw.missions || typeof raw.missions !== "object" || Array.isArray(raw.missions)) throw new Error("Choose a valid CyberNex, CyberGo, or CyberMission 120 JSON backup.");
   const result: Progress = { version: 1, start: raw.start, missions: {} };
   for (const [key, value] of Object.entries(raw.missions)) {
     const match = /^(soc|pentest)-(\d+)$/.exec(key);

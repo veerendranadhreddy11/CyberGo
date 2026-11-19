@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use cybergo::store::{self, Backup, Evidence, Progress, Store, Summary};
+use cybergo::store::{self, Backup, CourseState, Evidence, Progress, Store, Summary};
 use serde::Serialize;
 use std::{
     fs,
@@ -24,7 +24,7 @@ impl Desktop {
         let mut state = self
             .store
             .lock()
-            .map_err(|_| "Reopen CyberGo to recover the local workspace.")?;
+            .map_err(|_| "Reopen CyberNex to recover the local workspace.")?;
         if state.is_none() {
             *state = Some(Store::open(self.root.clone()).map_err(message)?);
         }
@@ -50,9 +50,9 @@ fn safe_destination(state: &Desktop, destination: &Path) -> Reply<()> {
     let root = state
         .root
         .canonicalize()
-        .map_err(|_| "Could not locate CyberGo storage.")?;
+        .map_err(|_| "Could not locate CyberNex storage.")?;
     if parent.starts_with(root) {
-        return Err("Choose a destination outside the CyberGo data folder.".into());
+        return Err("Choose a destination outside the CyberNex data folder.".into());
     }
     Ok(())
 }
@@ -65,6 +65,16 @@ async fn load_progress(state: State<'_, Desktop>) -> Reply<Progress> {
 #[tauri::command]
 async fn save_progress(state: State<'_, Desktop>, progress: Progress) -> Reply<()> {
     state.access(|store| store.save(&progress))
+}
+
+#[tauri::command]
+async fn load_course(state: State<'_, Desktop>) -> Reply<CourseState> {
+    state.access(|store| store.course())
+}
+
+#[tauri::command]
+async fn save_course(state: State<'_, Desktop>, course: CourseState) -> Reply<()> {
+    state.access(|store| store.save_course(&course))
 }
 
 #[tauri::command]
@@ -155,8 +165,8 @@ async fn export_backup(app: AppHandle, state: State<'_, Desktop>) -> Reply<bool>
     let picked = app
         .dialog()
         .file()
-        .add_filter("CyberGo backup", &["zip"])
-        .set_file_name("CyberGo-backup.zip")
+        .add_filter("CyberNex backup", &["zip"])
+        .set_file_name("CyberNex-backup.zip")
         .blocking_save_file();
     let Some(output) = path(picked)? else {
         return Ok(false);
@@ -177,12 +187,12 @@ async fn inspect_backup(app: AppHandle, state: State<'_, Desktop>) -> Reply<Opti
     let picked = app
         .dialog()
         .file()
-        .add_filter("CyberGo backup", &["zip"])
+        .add_filter("CyberNex backup", &["zip"])
         .blocking_pick_file();
     let mut pending = state
         .pending
         .lock()
-        .map_err(|_| "Reopen CyberGo and try again.")?;
+        .map_err(|_| "Reopen CyberNex and try again.")?;
     *pending = None;
     let Some(input) = path(picked)? else {
         return Ok(None);
@@ -199,7 +209,7 @@ async fn cancel_backup(state: State<'_, Desktop>) -> Reply<()> {
     *state
         .pending
         .lock()
-        .map_err(|_| "Reopen CyberGo and try again.")? = None;
+        .map_err(|_| "Reopen CyberNex and try again.")? = None;
     Ok(())
 }
 
@@ -209,7 +219,7 @@ async fn restore_backup(state: State<'_, Desktop>, token: String) -> Reply<Progr
         let mut pending = state
             .pending
             .lock()
-            .map_err(|_| "Reopen CyberGo and try again.")?;
+            .map_err(|_| "Reopen CyberNex and try again.")?;
         if pending.as_ref().is_none_or(|(id, _)| id != &token) {
             return Err("Select and validate the backup again.".into());
         }
@@ -242,6 +252,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             load_progress,
             save_progress,
+            load_course,
+            save_course,
             read_motion_preference,
             write_motion_preference,
             list_evidence,
@@ -256,5 +268,5 @@ fn main() {
             cancel_backup
         ])
         .run(tauri::generate_context!())
-        .expect("could not launch CyberGo");
+        .expect("could not launch CyberNex");
 }

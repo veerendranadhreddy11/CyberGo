@@ -1,6 +1,6 @@
 [package]
 name = "cybergo"
-version = "1.0.0"
+version = "2.0.0"
 description = "Offline cybersecurity learning workspace"
 edition = "2021"
 license = "MIT"
@@ -27,6 +27,6 @@ tempfile = "3"
 thiserror = "2"
 
 [[bin]]
-name = "cybergo"
+name = "cybernex"
 path = "src/main.rs"
 required-features = ["desktop"]
