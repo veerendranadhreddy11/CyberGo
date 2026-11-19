@@ -25,10 +25,16 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           python3 scripts/package-release.py macOS-AppleSilicon "$version"
-          app="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CyberGo.app"
+          artifact="release/CyberGo-macOS-AppleSilicon.dmg"
+          hdiutil verify "$artifact"
+          mountpoint="$(mktemp -d)"
+          trap 'hdiutil detach "$mountpoint" >/dev/null 2>&1 || true; rmdir "$mountpoint" 2>/dev/null || true' EXIT
+          hdiutil attach "$artifact" -nobrowse -readonly -mountpoint "$mountpoint"
+          app="$mountpoint/CyberGo.app"
+          test -f "$app/Contents/Info.plist"
           binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
           lipo -verify_arch arm64 "$app/Contents/MacOS/$binary"
-          hdiutil verify release/CyberGo-macOS-AppleSilicon.dmg
+          codesign --display --verbose=2 "$app"
       - uses: actions/upload-artifact@v4
         with:
           name: CyberGo-macOS-AppleSilicon
