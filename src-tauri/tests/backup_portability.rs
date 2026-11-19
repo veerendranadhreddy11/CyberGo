@@ -15,6 +15,9 @@ fn exchange_synthetic_backup() {
     let notes = "Synthetic cross-platform progress";
     let evidence = b"Synthetic evidence from a native runner";
     let name = "SOC résumé.txt";
+    let answers: serde_json::Value =
+        serde_json::from_str(include_str!("../../curriculum/course-answers.json")).unwrap();
+    let choice = answers["soc-1"][3][0].as_u64().unwrap();
 
     if let Some(path) = produce {
         let progress: Progress = serde_json::from_value(json!({
@@ -26,8 +29,9 @@ fn exchange_synthetic_backup() {
         let course: CourseState = serde_json::from_value(json!({
             "records": { "computers/architecture": { "checks": [0, 1], "notes": "Course practice",
                 "attempts": [{"at":"2026-11-19T10:00:00Z","choice":0,"score":100}],
-                "completedAt":"2026-11-19T11:00:00Z" } },
-            "badges": { "module":"2026-11-19T11:00:00Z" },
+                "completedAt":"2026-11-19T11:00:00Z" },
+                "soc-1":{"checks":[],"notes":"","attempts":[{"at":"2026-11-19T11:00:00Z","question":3,"choice":choice,"score":100}]} },
+            "badges": { "module":"2026-11-19T11:00:00Z", "soc-10":"2026-11-19T11:00:00Z" },
             "preferredModule": "networking"
         }))
         .unwrap();
@@ -40,7 +44,7 @@ fn exchange_synthetic_backup() {
     if let Some(path) = consume {
         let backup = Backup::open(&path).unwrap();
         assert_eq!(backup.summary().attachments, 1);
-        assert_eq!(backup.summary().lessons, 1);
+        assert_eq!(backup.summary().lessons, 2);
         store.restore(backup).unwrap();
         assert!(store.reduced_motion().unwrap());
         let saved = serde_json::to_value(store.progress().unwrap()).unwrap();
@@ -58,6 +62,9 @@ fn exchange_synthetic_backup() {
         );
         assert_eq!(course["badges"]["module"], "2026-11-19T11:00:00Z");
         assert_eq!(course["preferredModule"], "networking");
+        assert_eq!(course["records"]["soc-1"]["attempts"][0]["question"], 3);
+        assert_eq!(course["records"]["soc-1"]["attempts"][0]["choice"], choice);
+        assert_eq!(course["badges"]["soc-10"], "2026-11-19T11:00:00Z");
         let file = store.evidence(Some("soc-1")).unwrap().pop().unwrap();
         assert_eq!(file.name, name);
         assert_eq!(store.read(&file.id).unwrap().1, evidence);
