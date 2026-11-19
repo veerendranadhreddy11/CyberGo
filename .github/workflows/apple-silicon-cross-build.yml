@@ -1,0 +1,36 @@
+name: Apple Silicon cross-build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: rustup target add aarch64-apple-darwin
+      - run: npm ci
+      - name: Build Apple Silicon DMG
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
+        run: npm run desktop -- build --target aarch64-apple-darwin --bundles dmg
+      - name: Verify target architecture and archives
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          python3 scripts/package-release.py macOS-AppleSilicon "$version"
+          app="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CyberGo.app"
+          binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+          lipo -verify_arch arm64 "$app/Contents/MacOS/$binary"
+          hdiutil verify release/CyberGo-macOS-AppleSilicon.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CyberGo-macOS-AppleSilicon
+          path: release/*
+          if-no-files-found: error
