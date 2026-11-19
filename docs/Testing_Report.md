@@ -12,8 +12,10 @@
 | Chromium browser tests | Four passed. Coverage includes start confirmation, reload, offline notes, archive navigation, evidence, and legacy JSON restore. The browser tests use the standalone preview adapter. |
 | GitHub Actions workflow lint | Passed |
 | Native Tauri compilation check | Passed on Debian Linux with WebKitGTK using `cargo check --locked`. This check did not launch an installed application. |
+| Windows x64 installed-package smoke test | Passed on the GitHub Windows Server 2022 runner. The NSIS-installed program opened a window and created its SQLite database. |
+| Windows ↔ macOS backup transfer | Passed both directions on Windows Server 2022 and Intel macOS 15 runners using synthetic notes, preferences, and Unicode-named evidence. [Workflow result](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44499230046) |
 | Release ZIP wrapper | Verified the named files and extraction integrity for synthetic Windows and macOS package fixtures. |
 
 ## Release verification
 
-The release workflow includes Windows installation and macOS disk-image smoke checks on the two target architectures. The connected GitHub integration denied repository creation. No workflow run, platform package, cross-OS backup transfer, signed release, or public download was verified in this workspace.
+The public source repository and v1.0.0 tag are available. The Windows native job passed. macOS verification and publishing are tracked in the [release workflow](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44499013296). An [Apple Silicon cross-build](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44499883968) provides a fallback while the native ARM runner is queued.

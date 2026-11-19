@@ -1,0 +1,59 @@
+name: Publish release with cross-built Apple Silicon package
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform_run:
+        description: Run ID with verified Windows x64 and Intel macOS packages
+        required: true
+        type: string
+      silicon_run:
+        description: Run ID with verified Apple Silicon cross-build
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v1.0.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: CyberGo-Windows-x64
+          path: release
+          run-id: ${{ inputs.platform_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: CyberGo-macOS-Intel
+          path: release
+          run-id: ${{ inputs.platform_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: CyberGo-macOS-AppleSilicon
+          path: release
+          run-id: ${{ inputs.silicon_run }}
+          github-token: ${{ github.token }}
+      - name: Validate package contents and checksums
+        working-directory: release
+        run: |
+          test "$(find . -maxdepth 1 -type f | wc -l)" -eq 6
+          for item in *.zip; do unzip -tq "$item"; done
+          sha256sum *.zip *.dmg *.exe > SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
+      - name: Publish v1.0.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(mktemp)"
+          cat docs/Release_Notes_v1.0.0.md > "$notes"
+          printf '\nThe Apple Silicon DMG was cross-built on an Intel Mac and its ARM64 executable and disk image were verified. A launch test on Apple Silicon remains pending.\n' >> "$notes"
+          gh release create v1.0.0 release/* --verify-tag --title "CyberGo v1.0.0" --notes-file "$notes"
+          gh release view v1.0.0 --json url,assets
