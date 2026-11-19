@@ -1,6 +1,6 @@
 # Installing CyberNex
 
-Download the package matching your system from [CyberNex releases](https://github.com/veerendranadhreddy11/CyberGo/releases). Each platform has a native package and ZIP with this installation guide. [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/SHA256SUMS.txt)
+Download the package matching your system from [CyberNex releases](https://github.com/veerendranadhreddy11/CyberGo/releases). Each platform has a native package and ZIP with this installation guide. [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/SHA256SUMS.txt)
 
 ## Windows 10 or 11 x64
 
@@ -9,6 +9,10 @@ Extract the ZIP if needed, then open `CyberNex-Setup-Windows-x64.exe`. Complete 
 ## macOS 11 or later
 
 Pick the Apple Silicon or Intel disk image for your Mac. Open it and drag **CyberNex** into **Applications**. The Mac builds use ad hoc signatures and lack Apple Developer ID notarization. Gatekeeper policy may limit installation or launch.
+
+## Upgrade from CyberNex 2.0
+
+Close CyberNex, then install 2.1 using the same OS user profile. The upgrade reuses the existing SQLite and evidence directories. Backups from either 2.0 or 2.1 can be restored in 2.1.
 
 ## Upgrade from CyberGo
 

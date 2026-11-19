@@ -16,6 +16,12 @@ The Tauri identifier and application directory retain their CyberGo values. A ve
 
 The project checks the original mission counts, Full Course structure, SQLite migration, and backup compatibility. Native installers come from the Windows and macOS release runners. Consult the [testing report](Testing_Report.md) for executed tests and limitations, and the [installation guide](Installation_Guide.md) for setup.
 
+## CyberNex 2.1
+
+Home gives SOC and Pentesting separate entry points above the Full Course. The Back button follows page history, including practice and evidence pages. Each mission sequence advances independently, even when several missions are completed on the same date. Learning reports use the original timestamps and can be exported as PDFs offline.
+
+The original curriculum files and mission identifiers are retained. The offline teaching layer combines mission-specific material with shared tool and lab setup guides. Each mission and course lesson has five knowledge checks. The application keeps quiz attempts and milestones in the existing SQLite schema and portable backup format.
+
 ## Future work
 
 Future releases can broaden the lesson question banks, add native Apple Silicon launch coverage, and adopt publisher signing and notarization.

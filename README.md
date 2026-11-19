@@ -27,11 +27,11 @@ Use Back to return to your previous screen. Download a PDF learning report from 
 
 | Platform | Native installer | ZIP with guide |
 | --- | --- | --- |
-| Windows x64 | [Setup EXE](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/CyberNex-Setup-Windows-x64.exe) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/CyberNex-v2.0.0-Windows-x64.zip) |
-| macOS Apple Silicon | [DMG](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/CyberNex-macOS-AppleSilicon.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/CyberNex-v2.0.0-macOS-AppleSilicon.zip) |
-| macOS Intel | [DMG](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/CyberNex-macOS-Intel.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/CyberNex-v2.0.0-macOS-Intel.zip) |
+| Windows x64 | [Setup EXE](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/CyberNex-Setup-Windows-x64.exe) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/CyberNex-v2.1.0-Windows-x64.zip) |
+| macOS Apple Silicon | [DMG](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/CyberNex-macOS-AppleSilicon.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/CyberNex-v2.1.0-macOS-AppleSilicon.zip) |
+| macOS Intel | [DMG](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/CyberNex-macOS-Intel.dmg) | [ZIP](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/CyberNex-v2.1.0-macOS-Intel.zip) |
 
-[CyberNex v2.0.0 release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v2.0.0) · [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.0.0/SHA256SUMS.txt)
+[CyberNex v2.1.0 release](https://github.com/veerendranadhreddy11/CyberGo/releases/tag/v2.1.0) · [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/SHA256SUMS.txt)
 
 The targets are Windows 10 or 11 x64 and macOS 11 or later. See the [installation guide](docs/Installation_Guide.md) for signing and upgrade details.
 
