@@ -21,10 +21,17 @@ jobs:
         env:
           APPLE_SIGNING_IDENTITY: '-'
         run: npm run desktop -- build --target aarch64-apple-darwin --bundles dmg
-      - name: Verify target architecture and archives
+      - name: Package the installer and ZIP
         run: |
           version="$(node -p "require('./package.json').version")"
           python3 scripts/package-release.py macOS-AppleSilicon "$version"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CyberGo-macOS-AppleSilicon
+          path: release/*
+          if-no-files-found: error
+      - name: Verify architecture and signing inside the disk image
+        run: |
           artifact="release/CyberGo-macOS-AppleSilicon.dmg"
           hdiutil verify "$artifact"
           mountpoint="$(mktemp -d)"
@@ -33,10 +40,5 @@ jobs:
           app="$mountpoint/CyberGo.app"
           test -f "$app/Contents/Info.plist"
           binary=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
-          lipo -verify_arch arm64 "$app/Contents/MacOS/$binary"
+          lipo "$app/Contents/MacOS/$binary" -verify_arch arm64
           codesign --display --verbose=2 "$app"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: CyberGo-macOS-AppleSilicon
-          path: release/*
-          if-no-files-found: error
