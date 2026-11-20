@@ -1,4 +1,18 @@
-# CyberNex 2.1 testing report
+# CyberNex testing report
+
+## Two-course curriculum integration
+
+| Check | Result |
+| --- | --- |
+| Validation | Lint, TypeScript checking, legacy catalog validation, and static production export passed. |
+| TypeScript | 15 tests passed. The current registry has exactly two active courses, unique lesson IDs, verified quiz answer metadata, and prerequisites that point to earlier lessons in the same track. |
+| Chromium | Six tests passed. Both tracks were completed end to end offline. A direct lesson link could not bypass its prerequisite. The suite also checked previous notes and quiz history, evidence-only records, a corrupt backup, mobile width, Back, and offline PDF export. |
+| SQLite | Eight Rust tests passed. They include a version 1 migration, backup round trips, and restoring new records and attachments alongside earlier work. |
+| Desktop packages | Windows x64 and Intel macOS built and passed upgrade checks with seeded records. The Apple Silicon job built and verified its disk image, ARM64 binary, and ad hoc signature on an Intel runner. Native Apple Silicon launch remains unverified. The release job was skipped. [Platform build](https://github.com/veerendranadhreddy11/CyberGo/actions/runs/44730788577) |
+
+Eight lessons are available in the active application source. The separate intermediate and advanced samples were checked for meaningful content and valid quizzes. The intervening curriculum and independent capstone grading remain in development.
+
+## CyberNex v2.1.0 release record
 
 | Check | Result |
 | --- | --- |

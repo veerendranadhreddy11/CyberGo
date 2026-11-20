@@ -125,6 +125,8 @@ Reviewed on 19 November 2026. The linked reference pages returned HTTP 200. The 
 - Incident response and detection work emphasize evidence, prioritization and uncertainty. [NIST SP 800-61 Rev. 3](https://csrc.nist.gov/pubs/sp/800/61/r3/final) · [MITRE ATT&CK](https://attack.mitre.org/)
 - The saved inventory uses the documented meanings of open, closed and filtered. [Nmap port states](https://nmap.org/book/man-port-scanning-basics.html)
 - The authorization case distinguishes caller identity, object policy and the evidence of disclosure. [OWASP API Security Top 10 2023](https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/) · [OWASP Top 10 2025](https://top10.owasp.org/2025/)
+- The networking lessons use the TCP, UDP, IPv6 and IPv4 prefix definitions checked on 20 November 2026. [RFC 9293](https://www.rfc-editor.org/rfc/rfc9293.html) · [RFC 768](https://www.rfc-editor.org/rfc/rfc768.html) · [RFC 8200](https://www.rfc-editor.org/rfc/rfc8200.html) · [RFC 4632](https://www.rfc-editor.org/rfc/rfc4632.html)
+- The curriculum map uses the NICE Framework for professional tasks and the OWASP guide as a reference for engagement and reporting vocabulary. Both pages were checked on 20 November 2026. [NICE Framework](https://www.nist.gov/itl/applied-cybersecurity/nice/nice-framework-resource-center) · [OWASP WSTG](https://owasp.org/projects/web-security-testing-guide)
 
 ## Published sequence
 
@@ -140,6 +142,18 @@ Each lesson depends on the previous lesson in its own track. Lesson completion r
 The intermediate SOC triage, saved inventory, detection quality, and authorization review samples stay unpublished until their prerequisites are taught. Sign-in triage requires Windows and Linux identity, logging and timestamps. Inventory review requires subnetting, transport, service labels and lab scope. Detection quality requires log correlation, incident workflow and detection logic. Authorization review requires authentication, HTTP, API data and policy interpretation. Binary packet-capture labs and independent capstone grading are still pending.
 
 The archive retains original records, quiz attempts, notes, evidence and achievements. Backups containing new lesson IDs require a build that recognizes them.
+
+## Dependencies for planned laboratories
+
+| Laboratory | Knowledge taught first |
+| --- | --- |
+| SOC packet analysis | Network addresses and ports, TCP and UDP, DNS request and reply, and the distinction between a packet and a log event |
+| SOC SIEM and Wazuh | Windows and Linux security records, timestamp normalization, network flow, and the difference between an event and an alert |
+| SOC detection and hunting | Validated log sources, triage, incident response, and practice distinguishing an observation from a hypothesis |
+| Red Team saved Nmap inventory | Prefix membership, TCP and UDP states, service identification, a written scope, and an observation-point record |
+| Red Team web and API records | Client and server roles, HTTP messages, sessions, authentication, authorization, and an expected-access matrix |
+| Red Team operating-system permission review | Users, groups, permissions, processes, services, and approved administrative roles |
+| Red Team directory security review | Windows accounts, directory domains, authentication and authorization, Kerberos ticket roles, and group policy |
 
 ## Assessment specification
 
