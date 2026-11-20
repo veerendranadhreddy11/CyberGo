@@ -39,7 +39,7 @@ launch() {
 }
 
 old="$workdir/CyberNex-macOS-Intel.dmg"
-curl --fail --location --retry 2 "https://github.com/$GITHUB_REPOSITORY/releases/download/v2.0.0/CyberNex-macOS-Intel.dmg" --output "$old"
+curl --fail --location --retry 2 "https://github.com/$GITHUB_REPOSITORY/releases/download/v2.1.0/CyberNex-macOS-Intel.dmg" --output "$old"
 launch "$old" CyberNex 2 prior
 python3 scripts/upgrade-fixture.py seed "$database"
 launch "$artifact" CyberNex 2 upgrade

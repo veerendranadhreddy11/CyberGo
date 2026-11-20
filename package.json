@@ -1,6 +1,6 @@
 {
   "name": "cybernex",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Offline cybersecurity training with structured and self-paced courses",
   "scripts": {
     "test": "tsx --test tests/*.test.ts",

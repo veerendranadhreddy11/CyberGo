@@ -2,7 +2,7 @@
 
 Each entry groups related material into teaching, guided practice, and transfer work. Module ordering is a prerequisite chain unless a lesson explicitly calls for an earlier dependency. Both tracks teach their own foundations.
 
-Modules 1–4 in each path contain eight published lessons in total. Module 4 currently teaches the first networking lesson. Four intermediate and advanced samples have been reviewed separately. Later modules are planned.
+Modules 1–4 in each path contain twelve published lessons in total. Module 4 currently teaches the first networking lesson. Four intermediate and advanced samples have been reviewed separately. Later modules are planned.
 
 ## SOC · Absolute Beginner
 
@@ -132,6 +132,8 @@ Reviewed on 19 November 2026. The linked reference pages returned HTTP 200. The 
 
 | SOC | Red Team |
 | --- | --- |
+| What Is a Computer? | What Is a Computer? |
+| How Computers Work | How Computers Work |
 | Computers and files | Computers and web pages |
 | Protect a service | Security properties and controls |
 | SOC alert workflow | Authorized assessment and scope |

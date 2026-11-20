@@ -31,7 +31,7 @@ function Invoke-InstalledSmoke($package, $product, $databaseVersion) {
 }
 
 $oldInstaller = Join-Path $env:RUNNER_TEMP 'CyberNex-Setup-Windows-x64.exe'
-curl.exe --fail --location --retry 2 "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v2.0.0/CyberNex-Setup-Windows-x64.exe" --output $oldInstaller
+curl.exe --fail --location --retry 2 "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v2.1.0/CyberNex-Setup-Windows-x64.exe" --output $oldInstaller
 if ($LASTEXITCODE) { throw 'Could not download the prior CyberNex installer' }
 Invoke-InstalledSmoke $oldInstaller CyberNex 2
 python scripts/upgrade-fixture.py seed $database

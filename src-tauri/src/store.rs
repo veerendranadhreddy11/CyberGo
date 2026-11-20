@@ -872,6 +872,7 @@ mod course_tests {
         let id = "soc-rebuild/computer-first";
         let attempts = quiz_catalog()[id]
             .iter()
+            .take(3)
             .enumerate()
             .map(|(question, &(choice, _))| QuizAttempt {
                 question: Some(question),

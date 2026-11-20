@@ -17,6 +17,6 @@ test("Back and Home follow actual history and the archive exports a PDF offline"
   const result = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download Progress Report" }).click();
   const bytes = await readFile((await (await result).path())!);
-  expect(bytes.toString()).toContain("SOC Analyst: 0/4 published lessons completed");
+  expect(bytes.toString()).toContain("SOC Analyst: 0/6 published lessons completed");
   expect(bytes.toString()).toContain("%%EOF");
 });

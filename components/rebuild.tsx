@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { RebuildLesson } from "../curriculum/rebuild/representative";
-import { canCompleteRebuildLesson, courseProgress, primaryCourses, rebuildPath } from "../lib/rebuild";
+import { canCompleteRebuildLesson, courseProgress, isLessonAvailable, primaryCourses, rebuildPath } from "../lib/rebuild";
 import { emptyLesson, type CourseRecord, type CourseState } from "../lib/course";
 import { KnowledgeCheck } from "./knowledge";
 import { EvidenceAttachments } from "./mission";
@@ -37,10 +37,12 @@ export function Curriculum({ track, slug, state, update }: {
   const total = active.modules.length;
   const index = active.modules.findIndex(module => module.lesson.id.split("/")[1] === slug);
   const selectedModule = active.modules[index];
-  const ready = selectedModule && (!selectedModule.requires || state.records[selectedModule.requires]?.completedAt || state.records[selectedModule.id]?.completedAt);
-  if (ready) {
-    return <ReviewLesson key={selectedModule.id} lesson={selectedModule.lesson}
-      record={state.records[selectedModule.id] ?? emptyLesson()} next={active.modules[index + 1]?.lesson} update={update} />;
+  const ready = isLessonAvailable(active, index, state);
+  const groups = [...new Set(active.modules.map(item => item.title))];
+  if (ready && selectedModule) {
+    return <ReviewLesson moduleNumber={groups.indexOf(selectedModule.title) + 1}
+      lessonNumber={active.modules.filter(item => item.title === selectedModule.title).indexOf(selectedModule) + 1} key={selectedModule.id} lesson={selectedModule.lesson}
+      record={state.records[selectedModule.id] ?? emptyLesson()} next={next?.lesson.id === selectedModule.id ? active.modules[index + 1]?.lesson : next?.lesson ?? active.modules[index + 1]?.lesson} update={update} />;
   }
   return <>
     <section className={`nex-hero art-${active.id}`}><div className="nex-hero-copy">
@@ -54,29 +56,36 @@ export function Curriculum({ track, slug, state, update }: {
         <a className="button primary" href={rebuildPath(next.lesson)}>Continue Learning</a></> : <p>You’ve completed all currently available lessons.</p>}
       {slug && <p role="alert">{selectedModule ? "Complete the prerequisite lesson first." : "This lesson is not published."}</p>}
       <h3>Modules</h3>
-      <ol className="plain-list">{active.modules.map((item, i) => {
-        const done = Boolean(state.records[item.id]?.completedAt);
-        const locked = !done && item.requires && !state.records[item.requires]?.completedAt;
-        return <li key={item.id}><div><strong>Module {i + 1} · {item.title}</strong>
-          <p>{locked ? item.lesson.title : <a href={rebuildPath(item.lesson)}>{item.lesson.title}</a>}</p>
-          {locked && <small>Prerequisite · {active.modules[i - 1].lesson.title}</small>}
-          {item.lesson.objectives.map(objective => <p key={objective}>{objective}</p>)}
-        </div><span>{done ? "1 of 1 complete" : locked ? "Locked" : "0 of 1 complete"}</span></li>;
-      })}</ol>
+      {groups.map((title, groupIndex) => {
+        const items = active.modules.filter(item => item.title === title);
+        return <section key={title} className="lesson-content">
+          <h4>Module {groupIndex + 1} — {title}</h4>
+          <ol className="plain-list">{items.map((item, i) => {
+            const done = Boolean(state.records[item.id]?.completedAt);
+            const locked = !isLessonAvailable(active, active.modules.indexOf(item), state);
+            return <li key={item.id}><div><strong>Lesson {i + 1} — </strong>
+              {locked ? item.lesson.title : <a href={rebuildPath(item.lesson)}>{item.lesson.title}</a>}
+              {locked && <p><small>Prerequisite · {next?.lesson.title}</small></p>}
+            </div><span>{done ? "Complete" : locked ? "Locked" : "Available"}</span></li>;
+          })}</ol>
+        </section>;
+      })}
       <p>Further Foundation lessons and the Intermediate, Advanced, and Professional Practice levels are in development.</p>
     </section>
     {completed > 0 && <section className="panel lesson-content"><h2>Passed lesson checks</h2>
       <ul>{active.modules.filter(item => state.records[item.id]?.completedAt)
-        .map(item => <li key={item.id}>{item.lesson.title} · {item.lesson.questions.length} questions passed</li>)}</ul>
+        .map(item => <li key={item.id}>{item.lesson.title}</li>)}</ul>
       <p>Independent project assessments are required to demonstrate practical mastery.</p>
     </section>}
   </>;
 }
 
-function ReviewLesson({ lesson, record, next, update }: {
+function ReviewLesson({ lesson, record, next, update, moduleNumber, lessonNumber }: {
   lesson: RebuildLesson;
   record: CourseRecord;
   next?: RebuildLesson;
+  moduleNumber: number;
+  lessonNumber: number;
   update: Update;
 }) {
   const [celebrate, setCelebrate] = useState(false);
@@ -85,7 +94,7 @@ function ReviewLesson({ lesson, record, next, update }: {
   };
   return <>
     <section className={`nex-hero art-${lesson.track}`}><div className="nex-hero-copy">
-      <p>{lesson.level} · {lesson.module}</p><h1>{lesson.title}</h1>
+      <p>{lesson.level} · Module {moduleNumber} — {lesson.module}</p><h1>Lesson {lessonNumber} — {lesson.title}</h1>
     </div></section>
     <section className="panel lesson-content">
       <h2>Learn</h2>
@@ -103,7 +112,7 @@ function ReviewLesson({ lesson, record, next, update }: {
     <section className="panel lesson-content">
       <h2>Practise</h2><p>Use the bundled record and lesson notes. An external editor is optional.</p>
       <ol>{lesson.steps.map(step => <li key={step}>{step}</li>)}</ol>
-      <h2>Verify</h2><p>{lesson.expected}</p>
+      <h2>Expected results and verification</h2><p>{lesson.expected}</p>
       <h3>Troubleshooting</h3><p>{lesson.troubleshoot}</p>
     </section>
     <KnowledgeCheck questions={lesson.questions} record={record} save={save}/>

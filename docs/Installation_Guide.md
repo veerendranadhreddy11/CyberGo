@@ -1,6 +1,6 @@
 # Installing CyberNex
 
-Download the package matching your system from [CyberNex releases](https://github.com/veerendranadhreddy11/CyberGo/releases). Each platform has a native package and ZIP with this installation guide. [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberGo/releases/download/v2.1.0/SHA256SUMS.txt)
+Download the package matching your system from [CyberNex releases](https://github.com/veerendranadhreddy11/CyberNex/releases). Each platform has a native package and ZIP with this installation guide. [SHA-256 checksums](https://github.com/veerendranadhreddy11/CyberNex/releases/download/v2.1.0/SHA256SUMS.txt)
 
 ## Windows 10 or 11 x64
 

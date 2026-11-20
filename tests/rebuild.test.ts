@@ -4,15 +4,15 @@ import { reviewLessons } from "../lib/rebuild";
 import answers from "../curriculum/rebuild/answers.json";
 import legacyAnswers from "../curriculum/course-answers.json";
 import { emptyCourse, emptyLesson } from "../lib/course";
-import { canCompleteRebuildLesson, rebuildPath, primaryCourses, courseProgress } from "../lib/rebuild";
+import { canCompleteRebuildLesson, rebuildPath, primaryCourses, courseProgress, isLessonAvailable } from "../lib/rebuild";
 
 test("each review track contains a beginner lesson, intermediate lab, and advanced assessment", () => {
   assert.deepEqual(primaryCourses.map(track => track.id), ["soc", "pentest"]);
-  assert.equal(new Set(reviewLessons.map(lesson => rebuildPath(lesson))).size, 12);
-  assert.equal(new Set(reviewLessons.map(lesson => lesson.encouragement)).size, 12);
+  assert.equal(new Set(reviewLessons.map(lesson => rebuildPath(lesson))).size, 16);
+  assert.equal(new Set(reviewLessons.map(lesson => lesson.encouragement)).size, 16);
   for (const { id } of primaryCourses) {
     assert.deepEqual(reviewLessons.filter(lesson => lesson.track === id).map(lesson => lesson.level),
-      ["Absolute Beginner", "Absolute Beginner", "Absolute Beginner", "Foundation", "Intermediate", "Advanced"]);
+      [...Array(5).fill("Absolute Beginner"), "Foundation", "Intermediate", "Advanced"]);
   }
   assert.deepEqual(Object.keys(answers).sort(), reviewLessons.map(lesson => lesson.id).sort());
   for (const lesson of reviewLessons) {
@@ -49,14 +49,37 @@ test("published modules have unique IDs and prerequisites point to the preceding
   const allIds = primaryCourses.flatMap(course => course.modules.map(module => module.id));
   assert.equal(new Set(allIds).size, allIds.length);
   for (const course of primaryCourses) {
-    assert.deepEqual(course.modules.map(module => module.lesson.level), [...Array(3).fill("Absolute Beginner"), "Foundation"]);
+    assert.deepEqual(course.modules.map(module => module.lesson.level), [...Array(5).fill("Absolute Beginner"), "Foundation"]);
     assert.deepEqual(course.modules.map(module => module.requires),
-      [undefined, course.modules[0].id, course.modules[1].id, course.modules[2].id]);
+      course.modules.map((_, index) => course.modules[index - 1]?.id));
     const state = emptyCourse();
     assert.equal(courseProgress(course, state).next?.id, course.modules[0].id);
     state.records[course.modules[0].id] = { ...emptyLesson(), completedAt: "2026-11-20T06:00:00Z" };
     assert.equal(courseProgress(course, state).next?.id, course.modules[1].id);
     const other = primaryCourses.find(item => item.id !== course.id)!;
     assert.equal(courseProgress(other, state).completed, 0);
+  }
+});
+
+test("both active Module 1 lessons start with substantial computer fundamentals and five questions", () => {
+  for (const course of primaryCourses) {
+    const [first, second] = course.modules;
+    assert.ok(course.modules.every(item => item.lesson.questions.length === 5));
+    assert.equal(first.lesson.title, "What Is a Computer?");
+    assert.equal(first.title, "Computer and Cybersecurity Foundations");
+    assert.equal(first.requires, undefined);
+    assert.equal(first.lesson.questions.length, 5);
+    assert.equal(second.lesson.title, "How Computers Work");
+    assert.equal(second.requires, first.id);
+  }
+});
+
+test("old completions stay available without unlocking unfinished later lessons", () => {
+  for (const track of primaryCourses) {
+    const state = emptyCourse();
+    state.records[track.modules[4].id] = { ...emptyLesson(), completedAt: "2026-11-20T06:00:00Z" };
+    assert.equal(isLessonAvailable(track, 4, state), true);
+    assert.equal(isLessonAvailable(track, 5, state), false);
+    assert.equal(courseProgress(track, state).next?.id, track.modules[0].id);
   }
 });

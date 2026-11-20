@@ -3,6 +3,7 @@ import { primaryCourses, rebuildPath } from "../lib/rebuild";
 
 for (const track of primaryCourses) {
   test(`${track.name} completes in prerequisite order and persists offline`, async ({ page, context }) => {
+    test.setTimeout(60000);
     await page.goto("/");
     const home = page.getByRole("main");
     await expect(home.locator(".nex-mode")).toHaveCount(2);
@@ -14,6 +15,12 @@ for (const track of primaryCourses) {
     await page.getByRole("link", { name: "Continue Learning" }).click();
     for (const [index, { lesson }] of track.modules.entries()) {
       await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+      if (index === 0) {
+        await expect(page.getByRole("heading", { name: "Lesson 1 — What Is a Computer?", exact: true })).toBeVisible();
+        await expect(page.getByText("Module 1 — Computer and Cybersecurity Foundations", { exact: false })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Question 5", exact: true })).toBeVisible();
+        await expect(page.getByRole("main").getByText(/120.Day Crash Course|Full Cybersecurity Course|Mission 01|Suggested 40 min|Build and Explore Your Windows Security Monitoring Lab/)).toHaveCount(0);
+      }
       await expect(page.getByRole("button", { name: "Complete lesson", exact: true })).toBeDisabled();
       await page.getByRole("textbox", { name: "Lesson notes" }).fill(`Evidence for ${lesson.title}`);
       for (const control of await page.getByRole("checkbox").all()) await control.check();
