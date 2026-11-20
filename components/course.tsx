@@ -1,6 +1,6 @@
 "use client";
 
-import { reviewLessons } from "../lib/rebuild";
+import { courseLessons, reviewLessons } from "../lib/rebuild";
 import { rebuildPath } from "../lib/rebuild";
 import fixtures from "../curriculum/full-fixtures.json";
 import { getMission, trackInfo } from "../lib/catalog";
@@ -237,6 +237,6 @@ export function Notes({state,crash}:{state:CourseState;crash:Progress}) {
     <div className="nex-roadmap">{crashNotes.map(([id,record])=><article className="panel lesson-content" key={id}><h2><a href={`#/${id.replace("-","/")}`}>{id.toUpperCase()} · Crash Course</a></h2><p className="note-content">{record.notes}</p></article>)}
     {fullNotes.map(([id,record])=> {
       const review = reviewLessons.find(lesson => lesson.id === id);
-      return <article className="panel lesson-content" key={id}><h2><a href={review ? rebuildPath(review) : lessonLink(id)}>{review?.title ?? [...lessons,...milestones.lessons].find(lesson=>lesson.id===id)?.title ?? id}</a></h2><p className="note-content">{record.notes}</p></article>;
+      return <article className="panel lesson-content" key={id}><h2><a href={review && courseLessons.some(lesson => lesson.id === id) ? rebuildPath(review) : `#/archive/${id}`}>{review?.title ?? [...lessons,...milestones.lessons].find(lesson=>lesson.id===id)?.title ?? id}</a></h2><p className="note-content">{record.notes}</p></article>;
     })}</div></>;
 }

@@ -1,5 +1,7 @@
 # Full Cybersecurity Course
 
+This document describes a retired CyberNex v2.1.0 learning path. See the [current curriculum](Curriculum_Rebuild.md) for the active course structure. Earlier learner records remain accessible from the learning archive.
+
 The course is self-paced. Complete lessons in standard order, prioritize a module, or review individual lessons in any order. Each lesson contains reasoning, a worked example, a practical task, a knowledge check, and a completion checklist.
 
 | Module | Lessons | Topics |

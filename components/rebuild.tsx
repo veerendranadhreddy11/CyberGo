@@ -2,62 +2,75 @@
 
 import { useState } from "react";
 import type { RebuildLesson } from "../curriculum/rebuild/representative";
-import { reviewLessons } from "../lib/rebuild";
-import { canCompleteRebuildLesson, rebuildPath, rebuildTracks } from "../lib/rebuild";
+import { canCompleteRebuildLesson, courseProgress, primaryCourses, rebuildPath } from "../lib/rebuild";
 import { emptyLesson, type CourseRecord, type CourseState } from "../lib/course";
 import { KnowledgeCheck } from "./knowledge";
 import { EvidenceAttachments } from "./mission";
-import { Meter } from "./shared";
+import { Meter, Ring } from "./shared";
 
 type Update = (id: string, change: (record: CourseRecord) => CourseRecord) => Promise<boolean>;
 
-export function CurriculumReview({ track, slug, state, update }: {
+export function Curriculum({ track, slug, state, update }: {
   track?: string;
   slug?: string;
   state: CourseState;
   update: Update;
 }) {
-  const active = rebuildTracks.find(item => item.id === track);
-  const lessons = reviewLessons.filter(lesson => lesson.track === track);
-  const lesson = lessons.find(item => item.id.split("/")[1] === slug);
-  if (lesson) {
-    return <ReviewLesson key={lesson.id} lesson={lesson}
-      record={state.records[lesson.id] ?? emptyLesson()}
-      next={lessons[lessons.indexOf(lesson) + 1]} update={update} />;
-  }
+  const active = primaryCourses.find(item => item.id === track);
+  if (!active) return <>
+    <section className="nex-hero art-home"><div className="nex-hero-copy">
+      <h1>CyberNex</h1><p>Learn. Practice. Progress.</p>
+    </div></section>
+    <div className="nex-modes">{primaryCourses.map(item => {
+      const { completed, next } = courseProgress(item, state);
+      return <article key={item.id} className={`nex-mode art-${item.id}`}>
+        <div><p>{item.team}</p><h2>{item.name}</h2>
+          <p>{completed} of {item.modules.length} published lessons complete</p>
+          <a className="button primary" href={`#/learning/${item.id}`}>Open {item.name}</a>
+          {next && <a className="button subtle" href={rebuildPath(next.lesson)}>Continue Learning</a>}
+        </div><Ring value={100 * completed / item.modules.length} />
+      </article>;
+    })}</div>
+  </>;
 
-  if (active) {
-    const count = lessons.filter(item => state.records[item.id]?.completedAt).length;
-    const next = lessons.find(item => !state.records[item.id]?.completedAt);
-    return <>
-      <section className={`nex-hero art-${active.id}`}><div className="nex-hero-copy">
-        <p>Curriculum review</p><h1>{active.name}</h1><p>{active.team}</p>
-      </div></section>
-      <section className="panel lesson-content">
-        <h2>Review lessons</h2>
-        <p>{count} completed · {lessons.length - count} remaining in this batch.</p>
-        <Meter value={100 * count / lessons.length} label={`${count} of ${lessons.length} review lessons completed`} />
-        {next && <a className="button primary" href={rebuildPath(next)}>Continue Learning</a>}
-        <p>The intermediate and advanced review lessons include prerequisite briefings. The intervening modules are being developed.</p>
-        {slug && <p role="alert">This lesson is not part of the current batch.</p>}
-        <ol className="plain-list">{lessons.map(item =>
-          <li key={item.id}><div><small>{item.level} · {item.module}</small><br />
-            <a href={rebuildPath(item)}>{item.title}</a></div>
-            <span>{state.records[item.id]?.completedAt ? "Complete" : "Available"}</span>
-          </li>)}</ol>
-        <a className="button subtle" href="#/learning">Both review tracks</a>
-      </section>
-    </>;
+  const { completed, next } = courseProgress(active, state);
+  const total = active.modules.length;
+  const index = active.modules.findIndex(module => module.lesson.id.split("/")[1] === slug);
+  const selectedModule = active.modules[index];
+  const ready = selectedModule && (!selectedModule.requires || state.records[selectedModule.requires]?.completedAt || state.records[selectedModule.id]?.completedAt);
+  if (ready) {
+    return <ReviewLesson key={selectedModule.id} lesson={selectedModule.lesson}
+      record={state.records[selectedModule.id] ?? emptyLesson()} next={active.modules[index + 1]?.lesson} update={update} />;
   }
-
-  return <section className="panel lesson-content">
-    <h1>Curriculum review</h1>
-    <p>Eight offline lessons are available for review. Progress in this batch is recorded separately from the earlier curriculum.</p>
-    {track && <p role="alert">Choose a review track below.</p>}
-    <div className="nex-modes">{rebuildTracks.map(item => <article key={item.id} className={`nex-mode art-${item.id}`}>
-      <div><p>{item.team}</p><h2>{item.name}</h2><a className="button primary" href={`#/learning/${item.id}`}>Review {item.name}</a></div>
-    </article>)}</div>
-  </section>;
+  return <>
+    <section className={`nex-hero art-${active.id}`}><div className="nex-hero-copy">
+      <p>{active.team}</p><h1>{active.name}</h1>
+    </div></section>
+    <section className="panel lesson-content">
+      <h2>Course overview</h2>
+      <p>{next?.lesson.level ?? active.modules.at(-1)?.lesson.level} · {completed} of {total} published lessons complete · {Math.round(100 * completed / total)}%</p>
+      <Meter value={100 * completed / total} label={`${completed} of ${total} lessons completed`} />
+      {next ? <><p>Current module · {next.title}</p><p>Current lesson · {next.lesson.title}</p>
+        <a className="button primary" href={rebuildPath(next.lesson)}>Continue Learning</a></> : <p>You’ve completed all currently available lessons.</p>}
+      {slug && <p role="alert">{selectedModule ? "Complete the prerequisite lesson first." : "This lesson is not published."}</p>}
+      <h3>Modules</h3>
+      <ol className="plain-list">{active.modules.map((item, i) => {
+        const done = Boolean(state.records[item.id]?.completedAt);
+        const locked = !done && item.requires && !state.records[item.requires]?.completedAt;
+        return <li key={item.id}><div><strong>Module {i + 1} · {item.title}</strong>
+          <p>{locked ? item.lesson.title : <a href={rebuildPath(item.lesson)}>{item.lesson.title}</a>}</p>
+          {locked && <small>Prerequisite · {active.modules[i - 1].lesson.title}</small>}
+          {item.lesson.objectives.map(objective => <p key={objective}>{objective}</p>)}
+        </div><span>{done ? "1 of 1 complete" : locked ? "Locked" : "0 of 1 complete"}</span></li>;
+      })}</ol>
+      <p>Further Foundation lessons and the Intermediate, Advanced, and Professional Practice levels are in development.</p>
+    </section>
+    {completed > 0 && <section className="panel lesson-content"><h2>Passed lesson checks</h2>
+      <ul>{active.modules.filter(item => state.records[item.id]?.completedAt)
+        .map(item => <li key={item.id}>{item.lesson.title} · {item.lesson.questions.length} questions passed</li>)}</ul>
+      <p>Independent project assessments are required to demonstrate practical mastery.</p>
+    </section>}
+  </>;
 }
 
 function ReviewLesson({ lesson, record, next, update }: {
@@ -120,8 +133,8 @@ function ReviewLesson({ lesson, record, next, update }: {
       </>}
       {record.completedAt && <p>Lesson complete.</p>}
       {celebrate && <p role="status">{lesson.encouragement}</p>}
-      {next && record.completedAt && <a className="button primary" href={rebuildPath(next)}>Next review lesson</a>}
-      <a className="button subtle" href={`#/learning/${lesson.track}`}>Back to review track</a>
+      {next && record.completedAt && <a className="button primary" href={rebuildPath(next)}>Next lesson</a>}
+      <a className="button subtle" href={`#/learning/${lesson.track}`}>Back to course</a>
     </section>
   </>;
 }

@@ -88,8 +88,8 @@ async fn write_motion_preference(state: State<'_, Desktop>, enabled: bool) -> Re
 }
 
 #[tauri::command]
-async fn list_evidence(state: State<'_, Desktop>, mission: String) -> Reply<Vec<Evidence>> {
-    state.access(|store| store.evidence(Some(&mission)))
+async fn list_evidence(state: State<'_, Desktop>, mission: Option<String>) -> Reply<Vec<Evidence>> {
+    state.access(|store| store.evidence(mission.as_deref()))
 }
 
 #[tauri::command]

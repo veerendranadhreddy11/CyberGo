@@ -25,6 +25,24 @@ async function transact<T>(mode: IDBTransactionMode, operation: (store: IDBObjec
 
 export const getEvidence = (mission: string) =>
   transact<Evidence[]>("readonly", store => store.index("mission").getAll(mission));
+
+export async function evidenceRecordIds(): Promise<string[]> {
+  const db = await connection();
+  try {
+    return await new Promise((resolve, reject) => {
+      const transaction = db.transaction("files", "readonly");
+      const cursor = transaction.objectStore("files").index("mission").openKeyCursor(null, "nextunique");
+      const ids: string[] = [];
+      cursor.onsuccess = () => {
+        if (!cursor.result) return;
+        ids.push(String(cursor.result.key));
+        cursor.result.continue();
+      };
+      transaction.oncomplete = () => resolve(ids);
+      transaction.onabort = () => reject(transaction.error ?? new Error("Unable to list stored evidence."));
+    });
+  } finally { db.close(); }
+}
 export const saveEvidence = (file: Evidence) => transact("readwrite", store => store.add(file));
 export const deleteEvidence = (id: string) => transact("readwrite", store => store.delete(id));
 export function download(blob: Blob, name: string) {

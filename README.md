@@ -4,26 +4,18 @@
 
 CyberNex is a free cybersecurity learning app for Windows and macOS. It packages the curriculum, exercises, illustrations, quizzes, and progress tracking for offline study.
 
-This branch contains the curriculum review. Run the development build and select **Review the new curriculum** from Home to open the eight offline lessons. The downloads below are for the existing v2.1.0 release. [Curriculum specification and review status](docs/Curriculum_Rebuild.md)
+## Courses in the current source
 
-![CyberNex home with both learning modes](docs/screenshots/home.webp)
-
-## Two ways to learn
-
-| Mode | What you can do |
+| Course | Available lessons |
 | --- | --- |
-| **120-Day Crash Course** | Open SOC Analyst or Penetration Testing directly from Home. Complete 120 missions per track at your own pace, with offline evidence, guided setup, five questions, and feedback after each completion. |
-| **Full Cybersecurity Course** | Study 41 lessons across 10 modules at your own pace. Continue Learning opens the next incomplete lesson. Pick a priority module from the roadmap to change your sequence. |
+| **SOC Analyst · Blue Team** | Computer fundamentals, security principles, the SOC alert workflow, and networking fundamentals |
+| **Red Team & Penetration Testing** | Computer fundamentals, security controls, authorized assessment scope, and network endpoints |
 
-Use Back to return to your previous screen. Download a PDF learning report from My Progress. Track quiz attempts, milestones, and the Dual-Track Achievement. Practice assessment methods using written scope, sanitized records, and defensive review in your authorized learning environment.
+Both courses are self-paced. Complete the current lesson to unlock the next one. The course overview shows published lesson counts and completed checks. Lessons include offline examples, definitions, guided practice, quizzes, and spaces to save notes and evidence.
 
-## Screenshots
+The beginner sequence and first networking lesson are available in each track. Later modules and capstones are in development. [Curriculum map and dependencies](docs/Curriculum_Rebuild.md)
 
-| Crash Course | Full Course |
-| --- | --- |
-| ![Crash Course mission and progress dashboard](docs/screenshots/crash-course.webp) | ![Full Course dashboard with Continue Learning and module progress](docs/screenshots/full-course.webp) |
-| ![SOC mission interface](docs/screenshots/soc.webp) | ![Pentesting mission interface](docs/screenshots/pentesting.webp) |
-| ![Full Course roadmap](docs/screenshots/roadmap.webp) |  |
+The installers below are for the existing v2.1.0 release. Use the development instructions to try the current source.
 
 ## Install
 
@@ -39,7 +31,7 @@ The targets are Windows 10 or 11 x64 and macOS 11 or later. See the [installatio
 
 ## Progress and backups
 
-Learning progress stays on the student's own computer and does not automatically synchronize between devices. Open **Settings → Export my data** for a ZIP containing both modes, quiz attempts, achievements, preferences, and evidence. Confirm replacement after reviewing the summary in **Import my data**. CyberGo users can upgrade in place. CyberNex uses the existing application data directory and can import older CyberGo ZIPs.
+Learning progress stays on the student's computer. In the installed app, **Settings → Export my data** creates a ZIP with both courses, historical records, quiz attempts, achievements, preferences, and evidence. Review the restore summary before confirming replacement. The **Learning archive** provides access to earlier notes, evidence, quiz history, activity charts, and reports. Prior completions keep their original identifiers.
 
 ## Development
 
@@ -58,4 +50,4 @@ npm run test:browser
 npm run desktop -- dev
 ```
 
-Read the [architecture](docs/Architecture.md), [curriculum](docs/Full_Course_Curriculum.md), [testing report](docs/Testing_Report.md), [development report](docs/CyberNex_Development_Report.md), and [contribution guide](CONTRIBUTING.md). CyberNex uses the [MIT License](LICENSE).
+Read the [architecture](docs/Architecture.md), [curriculum](docs/Curriculum_Rebuild.md), [testing report](docs/Testing_Report.md), [development report](docs/CyberNex_Development_Report.md), and [contribution guide](CONTRIBUTING.md). CyberNex uses the [MIT License](LICENSE).

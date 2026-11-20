@@ -2,7 +2,7 @@
 
 Each entry groups related material into teaching, guided practice, and transfer work. Module ordering is a prerequisite chain unless a lesson explicitly calls for an earlier dependency. Both tracks teach their own foundations.
 
-The first review batch includes six representative lessons. A follow-on batch adds two beginner lessons on service protection and assessment scope. The mapped modules below are planned for the full courses. The application does not award credit for planned lessons.
+Modules 1–4 in each path contain eight published lessons in total. Module 4 currently teaches the first networking lesson. Four intermediate and advanced samples have been reviewed separately. Later modules are planned.
 
 ## SOC · Absolute Beginner
 
@@ -126,12 +126,20 @@ Reviewed on 19 November 2026. The linked reference pages returned HTTP 200. The 
 - The saved inventory uses the documented meanings of open, closed and filtered. [Nmap port states](https://nmap.org/book/man-port-scanning-basics.html)
 - The authorization case distinguishes caller identity, object policy and the evidence of disclosure. [OWASP API Security Top 10 2023](https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/) · [OWASP Top 10 2025](https://top10.owasp.org/2025/)
 
-## Review batch status
+## Published sequence
 
-- Open **Review the new curriculum** from Home in a build of this branch. The preview uses the existing application shell and requires no starting date.
-- The earlier dashboard and courses remain available on the review branch until the replacement paths are ready.
-- Existing identifiers and SQLite schema version are unchanged. Review lessons use separate identifiers. They can coexist with earlier records in an export. A v2.1.0 installation does not recognize preview identifiers in an archive, so keep a pre-preview backup if you intend to return to v2.1.0.
-- All review examples can be completed from the bundled text records. External installations, binary packet captures, the full prerequisite chain, module progress across multiple lessons, and independent capstone grading are still pending.
+| SOC | Red Team |
+| --- | --- |
+| Computers and files | Computers and web pages |
+| Protect a service | Security properties and controls |
+| SOC alert workflow | Authorized assessment and scope |
+| Networks and firewall records | Hosts, ports and services |
+
+Each lesson depends on the previous lesson in its own track. Lesson completion requires a note, practice checks, and passing all quiz questions. The first networking lessons introduce IP, transport, ports, and service identification. They do not cover all of Module 4.
+
+The intermediate SOC triage, saved inventory, detection quality, and authorization review samples stay unpublished until their prerequisites are taught. Sign-in triage requires Windows and Linux identity, logging and timestamps. Inventory review requires subnetting, transport, service labels and lab scope. Detection quality requires log correlation, incident workflow and detection logic. Authorization review requires authentication, HTTP, API data and policy interpretation. Binary packet-capture labs and independent capstone grading are still pending.
+
+The archive retains original records, quiz attempts, notes, evidence and achievements. Backups containing new lesson IDs require a build that recognizes them.
 
 ## Assessment specification
 

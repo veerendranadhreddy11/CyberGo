@@ -3,7 +3,7 @@ import type { Question } from "../../lib/teaching";
 export type RebuildLesson = {
   id: string;
   track: "soc" | "pentest";
-  level: "Absolute Beginner" | "Intermediate" | "Advanced";
+  level: "Absolute Beginner" | "Foundation" | "Intermediate" | "Advanced";
   module: string;
   title: string;
   objectives: string[];

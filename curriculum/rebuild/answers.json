@@ -27,13 +27,13 @@
       4
     ]
   ],
-  "soc-rebuild/login-triage": [
+  "soc-rebuild/first-alert": [
     [
       2,
       4
     ],
     [
-      0,
+      1,
       4
     ],
     [
@@ -41,9 +41,9 @@
       4
     ]
   ],
-  "soc-rebuild/detection-evaluation": [
+  "soc-rebuild/network-baseline": [
     [
-      3,
+      2,
       4
     ],
     [
@@ -51,11 +51,7 @@
       4
     ],
     [
-      2,
-      4
-    ],
-    [
-      1,
+      3,
       4
     ]
   ],
@@ -73,7 +69,49 @@
       4
     ]
   ],
+  "red-rebuild/security-properties": [
+    [
+      1,
+      4
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      0,
+      4
+    ]
+  ],
   "red-rebuild/scope-first": [
+    [
+      2,
+      4
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      3,
+      4
+    ]
+  ],
+  "red-rebuild/network-endpoints": [
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      1,
+      4
+    ]
+  ],
+  "soc-rebuild/login-triage": [
     [
       2,
       4
@@ -98,6 +136,24 @@
     ],
     [
       0,
+      4
+    ]
+  ],
+  "soc-rebuild/detection-evaluation": [
+    [
+      3,
+      4
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      1,
       4
     ]
   ],

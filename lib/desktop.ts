@@ -32,7 +32,7 @@ export async function writeReducedMotion(enabled: boolean) {
   else localStorage.setItem("cybergo.reduceMotion", String(enabled));
 }
 export const desktop = {
-  evidence: (mission: string) => invoke<NativeEvidence[]>("list_evidence", { mission }),
+  evidence: (mission?: string) => invoke<NativeEvidence[]>("list_evidence", { mission }),
   attach: (mission: string) => invoke<NativeEvidence[]>("attach_evidence", { mission }),
   delete: (id: string) => invoke("delete_evidence", { id }),
   exportAttachment: (id: string) => invoke("export_attachment", { id }),

@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Download, HardDrive, Upload } from "lucide-react";
+import { Download, HardDrive, Upload } from "lucide-react";
 import { parseBackup } from "../lib/progress";
-import { displayDay, isDay } from "../lib/dates";
 import { download } from "../lib/evidence";
 import { desktop, errorText, native, type BackupPreview } from "../lib/desktop";
 import type { Day, Progress } from "../lib/types";
@@ -20,8 +19,6 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
   saveMotion: (enabled: boolean) => Promise<void>;
   flush: () => Promise<boolean>;
 }) {
-  const [date, setDate] = useState<Day>();
-  const [schedule, setSchedule] = useState<Day>();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState<Pending>();
   const [busy, setBusy] = useState(false);
@@ -45,25 +42,10 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
   }
 
   return <>
-    <div className="page-heading"><h1>Settings</h1><p>Manage your start date, display preferences, and local backups.</p></div>
+    <div className="page-heading"><h1>Settings</h1><p>Manage display preferences and local backups.</p></div>
     <section className="panel settings-panel">
-      <div className="chart-head"><h2>Journey schedule</h2><CalendarDays size={22} /></div>
-      <p>The selected start date is shared by both tracks and sets the first day of elapsed time. Changing it preserves mission positions and actual completion dates.</p>
-      <form onSubmit={event => { event.preventDefault(); const chosen = date ?? data.start ?? today; if (isDay(chosen)) setSchedule(chosen); }}>
-        <label>Start date<input type="date" required value={date ?? data.start ?? today} onChange={event => setDate(event.target.value)} /></label>
-        <button className="button primary" type="submit">Save start date</button>
-      </form>
-      {schedule && <div className="notice"><p>Use {displayDay(schedule, { dateStyle: "long" })} as the start date for both paths?</p>
-        <div className="actions">
-          <button className="button primary" onClick={() => void run(async () => {
-            if (await update(current => ({ ...current, start: schedule }))) {
-              setSchedule(undefined); setMessage("Journey start date saved.");
-            }
-          })} disabled={busy}>Confirm date change</button>
-          <button className="button subtle" onClick={() => setSchedule(undefined)}>Cancel</button>
-        </div>
-      </div>}
-      <p className="small muted">Calendar time zone: Europe/Paris</p>
+      <h2>Earlier learning records</h2><p>Open work saved with earlier versions of CyberNex.</p>
+      <a className="button subtle" href="#/archive">Open learning archive</a>
     </section>
     <section className="panel settings-panel">
       <div className="chart-head"><h2>Backup and restore</h2><HardDrive size={22} /></div>
@@ -101,7 +83,7 @@ export function Settings({ data, today, update, restoreBackup, flush, reducedMot
             if (!await flush()) throw new Error("Retry saving your progress before restoring.");
             if (pending.kind === "zip") await restoreBackup(pending.data.token);
             else if (!await update(() => pending.data, true)) return;
-            setDate(undefined); setPending(undefined); setMessage("Backup restored.");
+            setPending(undefined); setMessage("Backup restored.");
           })}>Restore backup</button>
           <button className="button subtle" disabled={busy} onClick={() => void run(async () => {
             if (pending.kind === "zip") await desktop.cancel();

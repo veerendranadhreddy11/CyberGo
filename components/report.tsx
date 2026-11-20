@@ -41,6 +41,6 @@ export function CompletionReport({crash,course,today,track}:Props & {track?:Trac
     {reportLines(crash,course,today).slice(3).filter(Boolean).map((line,index)=><p key={index}>{line}</p>)}
     <ReportButton crash={crash} course={course} today={today}/>
     <div className="actions"><a className="button subtle" href="#/achievements">View Achievements</a>
-      <a className="button subtle" href="#/course">Explore Full Course</a><a className="button subtle" href="#/">Return Home</a></div>
+      <a className="button subtle" href="#/archive">Open learning archive</a><a className="button subtle" href="#/">Return Home</a></div>
   </section></>;
 }

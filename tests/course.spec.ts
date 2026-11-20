@@ -1,68 +1,27 @@
-import { test, expect, type Page } from "@playwright/test";
-import { join } from "node:path";
+import { expect, test } from "@playwright/test";
 
-async function photo(page:Page,name:string) {
-  if(process.env.CYBERNEX_SCREENSHOTS) await page.screenshot({path:join(process.env.CYBERNEX_SCREENSHOTS,name+".png"),animations:"disabled"});
-}
-
-test("full course works from Home, stores quiz answers and notes, and resumes offline", async ({page,context})=>{
-  await page.goto("/");
-  await expect(page.getByRole("heading",{name:"CyberNex",exact:true})).toBeVisible();
-  await photo(page,"home");
-  await page.getByRole("link",{name:"Explore Full Course"}).click();
-  await expect(page.getByRole("heading",{name:"Full Cybersecurity Course",exact:true})).toBeVisible();
-  await photo(page,"full-course");
-  await page.getByRole("link",{name:"All Modules",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Learning roadmap"})).toBeVisible();
-  await photo(page,"roadmap");
-  await page.getByRole("link",{name:"Full Cybersecurity Course",exact:true}).click();
-  await page.getByRole("link",{name:"Continue learning"}).click();
-  await expect(page.getByRole("heading",{name:"How a computer handles work"})).toBeVisible();
-  await page.getByRole("radio",{name:"Persistent storage"}).check();
-  await page.getByRole("button",{name:"Check answer"}).click();
-  await expect(page.getByText("Correct · 100%")).toBeVisible();
-  await page.getByRole("textbox",{name:"Learning notes"}).fill("CPU and disk can be separate bottlenecks.");
-  await page.getByRole("checkbox",{name:/Explain the concept/}).check();
-  await page.getByRole("checkbox",{name:/Finish the exercise/}).check();
-  await page.getByRole("button",{name:"Mark lesson complete"}).click();
-  await expect(page.getByText("Saved locally",{exact:true})).toBeVisible();
-  await page.getByRole("link",{name:"120-Day Crash Course",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Welcome to CyberNex"})).toBeVisible();
-  await page.getByRole("checkbox",{name:/Confirm/}).check();
-  await page.getByRole("button",{name:"Begin journey"}).click();
-  await expect(page.getByRole("heading",{name:"Mission Control"})).toBeVisible();
-  await photo(page,"crash-course");
-  await page.getByRole("link",{name:"SOC Analyst",exact:true}).click();
-  await expect(page.getByRole("heading",{name:/Build and Explore/})).toBeVisible();
-  await photo(page,"soc");
-  await page.getByRole("link",{name:"Penetration Testing",exact:true}).click();
-  await expect(page.getByRole("heading",{name:/Validate Your Lab/})).toBeVisible();
-  await photo(page,"pentesting");
-  for (const box of await page.getByRole("checkbox").all()) await box.check();
-  await page.getByRole("button",{name:"Mark Pentesting mission complete"}).click();
-  await expect(page.getByText("Saved locally",{exact:true})).toBeVisible();
-  await page.waitForFunction(()=>Boolean(navigator.serviceWorker.controller));
+test("earlier lesson deep links retain notes, quiz history, and evidence", async ({ page, context }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("cybernex.course")) localStorage.setItem("cybernex.course", JSON.stringify({
+      records: { "computers/architecture": {
+        checks: [0, 1], notes: "Legacy lesson note", attempts: [{ at: "2026-01-02T11:00:00Z", choice: 0, score: 100 }],
+        completedAt: "2026-01-02T12:00:00Z",
+      } },
+      badges: { module: "2026-01-02T12:00:00Z" },
+    }));
+  });
+  await page.goto("/#/lesson/computers/architecture");
+  await expect(page.getByRole("heading", { name: "Learning archive" })).toBeVisible();
+  await expect(page.getByText("Legacy lesson note")).toBeVisible();
+  await expect(page.getByText(/Question 1 · 100%/)).toBeVisible();
+  await page.getByLabel("Attach evidence files").setInputFiles({ name: "legacy.txt", mimeType: "text/plain", buffer: Buffer.from("sample") });
+  await expect(page.getByRole("button", { name: "Download legacy.txt" })).toBeVisible();
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
   await context.setOffline(true);
   await page.reload();
-  const artwork=await page.evaluate(async()=>{
-    const cache=await caches.open((await caches.keys()).find(name=>name.startsWith("cybernex-"))!);
-    const requests=(await cache.keys()).filter(request=>new URL(request.url).pathname.startsWith("/art/"));
-    return Promise.all(requests.map(async request=>Boolean((await fetch(request)).ok)));
-  });
-  expect(artwork).toHaveLength(14);
-  expect(artwork.every(Boolean)).toBe(true);
-  await page.getByRole("link",{name:"Full Cybersecurity Course",exact:true}).click();
-  await page.getByRole("link",{name:"Continue learning"}).click();
-  await expect(page.getByRole("heading",{name:"Processes, memory, and privileges"})).toBeVisible();
-  await page.goto("/#/lesson/computers/architecture");
-  await expect(page.getByRole("textbox",{name:"Learning notes"})).toHaveValue("CPU and disk can be separate bottlenecks.");
-  await expect(page.getByText("Correct · 100%")).toBeVisible();
-  await expect(page.getByRole("heading",{name:"Lesson complete"})).toBeVisible();
-  await page.goto("/#/module/networking");
-  await page.getByRole("button",{name:"Study this module next"}).click();
-  await expect(page.getByText("Saved locally",{exact:true})).toBeVisible();
-  await page.goto("/#/course");
-  await page.reload();
-  await page.getByRole("link",{name:"Continue learning"}).click();
-  await expect(page.getByRole("heading",{name:"OSI layers and TCP/IP"})).toBeVisible();
+  const file = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download legacy.txt" }).click();
+  expect((await file).suggestedFilename()).toBe("legacy.txt");
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Achievements" }).click();
+  await expect(page.getByText("Unlocked", { exact: false }).first()).toBeVisible();
 });

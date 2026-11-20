@@ -1,27 +1,23 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, House, Activity, BookOpen, CalendarDays, ChevronRight, CircleHelp, LayoutDashboard, Menu, Settings2, ShieldCheck, StickyNote, Trophy, X } from "lucide-react";
+import { ArrowLeft, House, Activity, Crosshair, CalendarDays, ChevronRight, CircleHelp, LayoutDashboard, Menu, Settings2, ShieldCheck, StickyNote, Trophy, X } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
 import { parisDay, displayDay } from "../lib/dates";
 import { freshProgress } from "../lib/progress";
 import { desktop, errorText, native, readCourse, readProgress, readReducedMotion, writeCourse, writeProgress, writeReducedMotion } from "../lib/desktop";
-import { CurriculumReview } from "./rebuild";
-import { Welcome } from "./welcome";
+import { Curriculum } from "./rebuild";
 import Image from "next/image";
-import type { Progress, Track } from "../lib/types";
-import { trackInfo } from "../lib/catalog";
-import { Dashboard, Analytics } from "./dashboard";
-import { CalendarView } from "./calendar";
-import { TrackView } from "./track";
+import type { Progress } from "../lib/types";
+import { LearningArchive } from "./archive";
 import { Settings } from "./settings";
 import { CompletionReport } from "./report";
-import { missionCount } from "../lib/journey";
-import { applyBadges, emptyCourse, emptyLesson, lessons, milestones, type CourseRecord, type CourseState } from "../lib/course";
-import { Achievements, CrashNav, FullCourse, Home, LearningStats, LessonView, Notes } from "./course";
+import { courseLessons } from "../lib/rebuild";
+import { applyBadges, emptyCourse, emptyLesson, type CourseRecord, type CourseState } from "../lib/course";
+import { Achievements, LearningStats, Notes } from "./course";
 
 const navigation = [
   { title: "WORKSPACE", links: [{ id: "", title: "Home", icon: LayoutDashboard },
-    { id: "crash", title: "120-Day Crash Course", icon: ShieldCheck }, { id: "course", title: "Full Cybersecurity Course", icon: BookOpen },
+    { id: "learning/soc", title: "SOC Analyst", icon: ShieldCheck }, { id: "learning/pentest", title: "Red Team & Penetration Testing", icon: Crosshair },
     { id: "progress", title: "My Progress", icon: Activity }, { id: "achievements", title: "Achievements", icon: Trophy },
     { id: "notes", title: "Notes", icon: StickyNote }, { id: "settings", title: "Settings", icon: Settings2 }] },
 ];
@@ -155,16 +151,13 @@ export function Workspace() {
     return enqueue(() => writeCourse(next));
   }
 
-  const [page, selection, lessonId, focus] = where;
-  const lesson = page === "lesson" && [...lessons, ...milestones.lessons].find(item => item.id === `${selection}/${lessonId}`);
+  const [page, selection, lessonId] = where;
+  const legacyTrack = page === "soc" || page === "pentest" ? page : undefined;
+  const legacyRecord = page === "lesson" && selection && lessonId ? `${selection}/${lessonId}` : legacyTrack && selection ? `${legacyTrack}-${selection}` : undefined;
   function back() {
     if(historyDepth.current>0) {history.back(); return;}
-    if((page==="soc"||page==="pentest")&&lessonId) location.hash=`#/${page}/${selection}`;
-    else if((page==="soc"||page==="pentest")&&selection) location.hash=`#/${page}`;
-    else if(page==="learning" && lessonId) location.hash=`#/learning/${selection}`;
-    else if(page==="learning" && selection) location.hash="#/learning";
-    else if(page==="lesson") location.hash=selection==="milestones"?"#/assessments":`#/module/${selection}`;
-    else if(page==="module") location.hash="#/modules";
+    if(page==="learning" && lessonId) location.hash=`#/learning/${selection}`;
+    else if(page==="archive" && selection) location.hash="#/archive";
     else location.hash="#/";
   }
   useEffect(()=>{
@@ -176,30 +169,19 @@ export function Workspace() {
     window.addEventListener("keydown",shortcut);
     return ()=>window.removeEventListener("keydown",shortcut);
   },[]);
-  const combined = missionCount(data,"soc")+missionCount(data,"pentest");
-  const track: Track | undefined = page === "soc" || page === "pentest" ? page : undefined;
-  const navPage = crashPages.includes(page) || (lesson && selection === "milestones") ? "crash" : fullPages.includes(page) || lesson ? "course" : page;
-  const title = navigation.flatMap(group => group.links).find(link => link.id === navPage)?.title ?? (page === "learning" ? "Curriculum review" : "Home");
+  const combined = courseLessons.filter(lesson => course.records[lesson.id]?.completedAt).length;
+  const navPage = page === "learning" && selection ? `learning/${selection}` : page;
+  const title = navigation.flatMap(group => group.links).find(link => link.id === navPage)?.title ?? (crashPages.includes(page) || fullPages.includes(page) || page === "archive" || page === "lesson" ? "Learning archive" : "Home");
   let content: ReactNode;
   if (!today || !loaded) content = <div className="panel loading">{warning ? <div className="actions">
     <button className="button subtle" onClick={() => location.reload()}>Retry opening local data</button>
     {native() && <button className="button subtle" onClick={() => void desktop.openFolder().catch(error => setWarning(errorText(error)))}>Open data folder</button>}
   </div> : "Loading your workspace…"}</div>;
-  else if (page === "learning") content = <CurriculumReview track={selection} slug={lessonId} state={course} update={updateLesson} />;
-  else if (!data.start && crashPages.includes(page) && page !== "assessments") content = <><CrashNav/><Welcome today={today} update={update} /></>;
-  else if (track) content = <><CrashNav/><TrackView key={track} track={track} selection={selection} focus={lessonId} data={data} today={today} update={update} course={course} saveQuiz={(id,attempt)=>updateLesson(id,record=>({...record,attempts:[...record.attempts.slice(-99),attempt]}))} /></>;
-  else if (page === "calendar") content = <><CrashNav/><CalendarView data={data} today={today} /></>;
-  else if (page === "activity") content = <><CrashNav/><h1>Crash Course Learning History</h1><Analytics data={data} today={today} /></>;
-  else if (page === "crash") content = <><CrashNav/><Dashboard data={data} today={today} /></>;
-  else if (fullPages.includes(page) || page === "assessments") content = <FullCourse state={course} page={page} selection={selection} chooseModule={id => {
-    if (restoring.current) return;
-    const next = {...currentCourse.current, preferredModule:id};
-    replaceCourse(next);
-    void enqueue(() => writeCourse(next));
-  }} />;
-  else if (lesson) content = <LessonView key={lesson.id} lesson={lesson} state={course} update={updateLesson} focus={focus} />;
+  else if (page === "learning" || page === "" || page === "progress") content = <Curriculum track={selection} slug={lessonId} state={course} update={updateLesson} />;
+  else if (page === "archive" || page === "lesson" || crashPages.includes(page) || fullPages.includes(page))
+    content = <LearningArchive state={course} progress={data} today={today} selected={page === "archive" ? where.slice(1).join("/") : legacyRecord} />;
   else if (page === "report") content = <CompletionReport crash={data} course={course} today={today} track={selection==="soc"||selection==="pentest"?selection:undefined}/>;
-  else if (page === "progress") content = <LearningStats state={course} crash={data} today={today} />;
+  else if (page === "legacy-progress") content = <LearningStats state={course} crash={data} today={today} />;
   else if (page === "achievements") content = <Achievements state={course} crash={data} />;
   else if (page === "notes") content = <Notes state={course} crash={data} />;
   else if (page === "settings") content = <Settings data={data} today={today} update={update} restoreBackup={async token => {
@@ -218,7 +200,7 @@ export function Workspace() {
     await writeReducedMotion(enabled);
     setReducedMotion(enabled);
   }} />;
-  else content = <><Home crash={data} state={course} today={today}/><p><a className="button subtle" href="#/learning">Review the new curriculum</a></p></>;
+  else content = <Curriculum state={course} update={updateLesson} />;
   return <div className={`shell nex-shell ${reducedMotion ? "is-reduced" : ""}`}>
     <a href="#main-content" className="skip" onClick={event => { event.preventDefault(); document.getElementById("main-content")?.focus(); }}>Skip to content</a>
     {mobile && <button className="scrim" aria-label="Close navigation" onClick={closeMenu} />}
@@ -235,7 +217,7 @@ export function Workspace() {
         </div>)}
       </nav>
       <div className="sidebar-bottom">
-        <a href="#/progress" className="journey-block"><span><span className="journey-icon"><Activity size={15} /></span> Crash Course</span><strong>{combined} / 240</strong><span className="mini-meter"><i style={{width:`${combined/240*100}%`}} /></span>{!data.start&&<small>Choose a start date</small>}</a>
+        <a href="#/progress" className="journey-block"><span><span className="journey-icon"><Activity size={15} /></span> Published lessons</span><strong>{combined} / {courseLessons.length}</strong><span className="mini-meter"><i style={{width:`${combined/courseLessons.length*100}%`}} /></span></a>
         <a href="#/settings" className="local-label"><CircleHelp size={15} /> Progress stored locally</a>
       </div>
     </aside>
@@ -243,7 +225,7 @@ export function Workspace() {
       <header className="topbar">
         <button className="menu-toggle icon-button" ref={menuToggle} aria-label="Open navigation" aria-expanded={mobile} onClick={() => setMobile(true)}><Menu size={22} /></button>
         {page && <div className="route-actions"><button data-nex-back className="button subtle" type="button" onClick={back}><ArrowLeft size={15}/>Back</button><a className="button subtle" href="#/"><House size={15}/>Home</a></div>}
-        <div className="breadcrumbs"><span>Home</span><ChevronRight size={14} /><strong>{track ? trackInfo[track].name : title}{track && selection && /^\d+$/.test(selection)?` · Mission ${selection}`:""}</strong></div>
+        <div className="breadcrumbs"><span>Home</span><ChevronRight size={14} /><strong>{title}</strong></div>
         <time dateTime={today || undefined}><CalendarDays size={16} />{today ? displayDay(today, { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "Europe/Paris"}</time>
       </header>
       <main className="main" id="main-content" tabIndex={-1}>

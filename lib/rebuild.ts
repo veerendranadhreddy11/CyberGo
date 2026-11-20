@@ -1,15 +1,31 @@
 import { representativeLessons, type RebuildLesson } from "../curriculum/rebuild/representative";
 import { foundationLessons } from "../curriculum/rebuild/foundations";
-import type { CourseRecord } from "./course";
+import { orientationLessons } from "../curriculum/rebuild/orientation";
+import { networkingLessons } from "../curriculum/rebuild/networking";
+import type { CourseState, CourseRecord } from "./course";
 
 export const rebuildTracks = [
   { id: "soc", name: "SOC Analyst", team: "Blue Team" },
-  { id: "pentest", name: "Red Team", team: "Penetration Testing" }
+  { id: "pentest", name: "Red Team & Penetration Testing", team: "Penetration Testing" }
 ] as const;
 
-export const reviewLessons = rebuildTracks.flatMap(({ id }) => {
-  const [first, ...samples] = representativeLessons.filter(lesson => lesson.track === id);
-  return [first, ...foundationLessons.filter(lesson => lesson.track === id), ...samples];
+export const primaryCourses = rebuildTracks.map(track => {
+  const beginner = representativeLessons.find(lesson => lesson.track === track.id && lesson.level === "Absolute Beginner")!;
+  const [foundation] = foundationLessons.filter(lesson => lesson.track === track.id);
+  const [orientation] = orientationLessons.filter(lesson => lesson.track === track.id);
+  const intro = track.id === "soc" ? [beginner, foundation, orientation] : [beginner, orientation, foundation];
+  const ordered = [...intro, ...networkingLessons.filter(lesson => lesson.track === track.id)];
+  const modules = ordered.map((lesson, index) => ({
+    id: lesson.id, title: lesson.module, lesson, requires: ordered[index - 1]?.id,
+  }));
+  return { ...track, modules };
+});
+
+export const courseLessons = primaryCourses.flatMap(course => course.modules.map(module => module.lesson));
+export const reviewLessons = [...courseLessons, ...representativeLessons.filter(lesson => lesson.level !== "Absolute Beginner")];
+export const courseProgress = (course: (typeof primaryCourses)[number], state: CourseState) => ({
+  completed: course.modules.filter(module => state.records[module.id]?.completedAt).length,
+  next: course.modules.find(module => !state.records[module.id]?.completedAt && (!module.requires || state.records[module.requires]?.completedAt)),
 });
 
 export const rebuildPath = (lesson: RebuildLesson) => `#/learning/${lesson.track}/${lesson.id.split("/")[1]}`;

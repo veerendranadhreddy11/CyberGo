@@ -1,3 +1,4 @@
+import { courseProgress, primaryCourses } from "./rebuild";
 import { activity } from "./progress";
 import { applyBadges, badgeNames, completed, lessons, milestones, trackBadges, type CourseState } from "./course";
 import { missionCount, trackElapsed } from "./journey";
@@ -17,12 +18,16 @@ export function reportLines(crash: Progress, course: CourseState, today: Day) {
   };
   return [
     "CyberNex Learning Progress", `Generated ${today} | Selected start ${crash.start??"Not set"}`,
-    "", "Crash Course", `SOC Analyst: ${soc}/120 (${(soc/1.2).toFixed(1)}%) | ${elapsed("soc")}`,
+    "", "Current courses", ...primaryCourses.map(item => {
+      const { completed } = courseProgress(item, course);
+      return `${item.name}: ${completed}/${item.modules.length} published lessons completed`;
+    }),
+    "", "Archived mission history", `SOC Analyst: ${soc}/120 (${(soc/1.2).toFixed(1)}%) | ${elapsed("soc")}`,
     `Penetration Testing: ${pentest}/120 (${(pentest/1.2).toFixed(1)}%) | ${elapsed("pentest")}`,
     `Crash Course missions completed: ${stats.completed.length}/240 | Logged minutes: ${stats.minutes}`,
     `Practical exercises verified: ${stats.completed.length+full+assessments} (mission, lesson and assessment criteria)`,
     `Optional assessments completed: ${assessments}/${milestones.lessons.length}`,
-    "", "Full Cybersecurity Course", `Lessons completed: ${full}/${lessons.length} (${(full/lessons.length*100).toFixed(1)}%)`,
+    "", "Archived lesson history", `Lessons completed: ${full}/${lessons.length} (${(full/lessons.length*100).toFixed(1)}%)`,
     `Distinct quiz questions answered across both modes: ${checks}`,
     "", "Achievements", ...(badgeLabels.length?badgeLabels.map(label=>`- ${label}`):["No achievements yet."]),
     "", "These figures describe learning activity and practice completion."
