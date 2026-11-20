@@ -1,5 +1,12 @@
 # CyberNex testing report
 
+## CyberNex v2.2.0
+
+- Lint, type checking, curriculum validation, and static export passed. All 17 TypeScript tests, 6 Chromium tests, and 8 Rust tests passed.
+- Both offline course paths opened with Module 1 and Lesson 1 as specified. Tests answered all five questions, confirmed local progress persisted after reload, opened Lesson 2, and checked that the old course labels and Windows lab title were absent from the opening view.
+- Windows x64 and Intel macOS passed installed upgrade checks from v2.1.0 using seeded records. Apple Silicon passed disk image, ARM64, and ad hoc signature checks. Native Apple Silicon launch remains unverified. [Workflow](https://github.com/veerendranadhreddy11/CyberNex/actions/runs/44757372766)
+- Downloaded all three public ZIPs and verified the SHA-256 of each archive and its embedded installer. [Release](https://github.com/veerendranadhreddy11/CyberNex/releases/tag/v2.2.0)
+
 ## Two-course curriculum integration
 
 | Check | Result |
