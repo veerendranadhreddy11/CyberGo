@@ -16,6 +16,6 @@ Close CyberNex, then install 2.1 using the same OS user profile. The upgrade reu
 
 ## Upgrade from CyberGo
 
-Install CyberNex in the same OS user profile and close CyberGo before opening CyberNex. On first launch, CyberNex adds its Full Course table to the existing data directory. The application identifier, mission IDs, notes, dates, preferences, and evidence remain compatible. Back up data before upgrading. CyberGo v1 cannot open a schema upgraded by CyberNex.
+Install CyberNex in the same OS user profile and close CyberGo before opening CyberNex. On first launch from a v1 data directory, CyberNex upgrades the existing SQLite database in place. The application identifier, mission IDs, notes, dates, preferences, and evidence remain compatible. Back up data before upgrading. CyberGo v1 cannot open a schema upgraded by CyberNex.
 
-In CyberNex, **Settings → Open data folder** opens your SQLite and evidence folder. Use **Export my data** to make a portable ZIP. A CyberGo ZIP or browser progress JSON restores old Crash Course data while keeping your current Full Course learning. A CyberNex ZIP can restore both modes.
+In CyberNex, **Settings → Open data folder** opens your SQLite and evidence folder. Use **Export my data** to make a portable ZIP. A CyberGo ZIP or browser progress JSON restores earlier mission records. A CyberNex ZIP can restore current courses, earlier records, preferences, and evidence.

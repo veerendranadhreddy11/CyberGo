@@ -8,7 +8,7 @@ const connection = () => new Promise<IDBDatabase>((resolve, reject) => {
   };
   request.onsuccess = () => resolve(request.result);
   request.onerror = () => reject(request.error);
-  request.onblocked = () => reject(new Error("Close other CyberMission tabs and try again."));
+  request.onblocked = () => reject(new Error("Close other CyberNex tabs and try again."));
 });
 
 async function transact<T>(mode: IDBTransactionMode, operation: (store: IDBObjectStore) => IDBRequest<T>) {
